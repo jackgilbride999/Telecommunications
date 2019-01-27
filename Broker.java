@@ -1,3 +1,8 @@
+/** Broker class for custom Publish-Subscribe protocol. Handles datagram packets to
+  * facilitate the creation of, publication of, subscription to and unsubscription from
+  * topics. @author: Jack Gilbride
+  */
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -15,6 +20,9 @@ public class Broker extends Node {
 	/** Map topic numbers to topic names, map agreed with Publisher. */
 	private Map<Integer, String> topicNumbers;
 
+	/* Constructor of the Broker. Initialises the terminal, listener and
+	 * hashmaps.
+	 */
 	Broker(Terminal terminal) {
 		this.terminal = terminal;
 		try {
@@ -29,6 +37,9 @@ public class Broker extends Node {
 		topicNumbers = new HashMap<Integer, String>();
 	}
 
+	/* Mainline of the Broker. Initialises the terminal and calls the constructor
+	 * and start function.
+	 */
 	public static void main(String[] args) {
 		try {
 			Terminal terminal = new Terminal("Broker");
@@ -38,6 +49,9 @@ public class Broker extends Node {
 		}
 	}
 
+	/* Creates a topic given data from a creation packet. Returns true if the topic is
+	 * created, false otherwise (if the topic already exists).
+	 */
 	private boolean createTopic(byte[] data) {
 		ArrayList<InetSocketAddress> socketNumbers = new ArrayList<InetSocketAddress>();
 		String topicName = getMessage(data);
@@ -51,6 +65,9 @@ public class Broker extends Node {
 		return false;
 	}
 
+	/* Publishes a message for a topic given data from a publication packet. Returns true if
+	 * the message is published, false otherwise (the topic does not exist).
+	 */
 	private boolean publish(byte[] data) {
 		int topicNumber = getTopicNumber(data);
 		setType(data, PUBLICATION);
@@ -73,6 +90,10 @@ public class Broker extends Node {
 		return false;
 	}
 
+	/* Subscribes a subscriber to a topic given data from a subscription packet and the subscriber's
+	 * address. Returns true if the subscriber is successfully added to the subscription list, false
+	 * otherwise (the topic does not exist).
+	 */
 	private boolean subscribe(byte[] data, SocketAddress subscriberAddress) {
 		String topicName = getMessage(data);
 		if (subscriberMap.containsKey(topicName)) {
@@ -86,6 +107,10 @@ public class Broker extends Node {
 		return false;
 	}
 
+	/* Unsubscribes a subscriber from a topic given data from an unsubscription packet and the subscriber's
+	 * address. Returns true if the subscriber is successfully removed to the subscription list, false
+	 * otherwise (the topic does not exist).
+	 */
 	private boolean unsubscribe(byte[] data, SocketAddress subscriberAddress) {
 		boolean unsubscribed = false;
 		String topicName = getMessage(data);
@@ -106,6 +131,9 @@ public class Broker extends Node {
 		return unsubscribed;
 	}
 
+	/* Sends a message in a Datagram Packet given the message as a String and the destination
+	 * address.
+	 */
 	private void sendMessage(String message, SocketAddress socketAddress) {
 		InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
 		DatagramPacket packet = createPackets(MESSAGE, 0, message, inetSocketAddress)[0];
@@ -118,6 +146,9 @@ public class Broker extends Node {
 		}
 	}
 
+	/* Start function for the Broker. The Broker never initialises contact unless contacted by
+	 * another node first, so just waits.
+	 */
 	public synchronized void start() throws Exception {
 		terminal.println("Waiting for contact");
 		while (true) {
@@ -125,6 +156,9 @@ public class Broker extends Node {
 		}
 	}
 
+	/* Implementation of the abstract function in Node.java to handle received Datagram Packets. Calls the relevant
+	 * method based on the packet type (creatiojn, publication, subscription, unsubscription).
+	 */
 	public synchronized void onReceipt(DatagramPacket packet) {
 		try {
 			this.notify();
