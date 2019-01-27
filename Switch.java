@@ -1,3 +1,9 @@
+/** Switch class for custom implementation of OpenFlow Software Defined Network.
+    Finds out what other nodes it is connected to via initialisation messages from
+    the controller, then will forward messages from end nodes and other switches
+    based on its flow table. @author: Jack Gilbride.
+*/
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -12,6 +18,8 @@ public class Switch extends Node {
 	private InetSocketAddress controllerAddress;
 	private InetSocketAddress endNodeAddress;
 
+	/** Constructor of switch. Initialises the terminal, datagram socket and listener.
+	*/
 	Switch(byte routerNumber) throws SocketException {
 		this.routerNumber = BASE_PORT_NUMBER + routerNumber;
 		socket = new DatagramSocket(this.routerNumber);
@@ -21,10 +29,15 @@ public class Switch extends Node {
 		listener.go();
 	}
 
+	/* Start the switch by sending a Hello packet to the controller.
+	*/
 	public synchronized void start() {
 		sendHello();
 	}
 
+	/* Implementation of the abstract function in Node.java. Hands over to
+	 * another function based on the source address.
+	 */
 	@Override
 	public synchronized void onReceipt(DatagramPacket packet) {
 		terminal.print("Got a packet: ");
@@ -35,12 +48,17 @@ public class Switch extends Node {
 		}
 	}
 
+	/* Handles a packet sent from a controller.
+	*/
 	private synchronized void handleControllerPacket(DatagramPacket packet) {
 		byte[] data = packet.getData();
 		switch (getType(data)) {
+		// If the packet is a hello, print to the terminal.
 		case OFPT_HELLO:
 			terminal.println("Hello packet received from controller.");
 			break;
+		// If the packet is a features request, reply that the switch has basic
+		// features in a features reply.
 		case OFPT_FEATURES_REQUEST:
 			byte[] reply = { OFPT_FEATURES_REPLY, BASIC_FEATURES };
 			DatagramPacket featuresReply = new DatagramPacket(reply, reply.length);
@@ -52,6 +70,8 @@ public class Switch extends Node {
 				e.printStackTrace();
 			}
 			break;
+		// If the packet is a flow mod packet, parse the switch's flow table from
+		// the packet into a two-dimensional array.
 		case OFPT_FLOW_MOD:
 			terminal.println("Flow mod packet received from controller.");
 			byte[] flatTable = Arrays.copyOfRange(data, 1, data.length);
@@ -71,12 +91,15 @@ public class Switch extends Node {
 			}
 			setEndNodeAddress();
 			break;
+		// If the packet tells the switch to drop the packet, do nothing.
 		case OFPT_FLOW_REMOVED:
-			// Do nothing with the packet
 			terminal.println("Packet from end node dropped at instruction of controller.");
 		}
 	}
 
+	/* Update the switch's flowtable given a one-dimensional array 
+	 * representing it.
+	 */
 	private synchronized void updateFlowtable(byte[] flatFlowtable) {
 		int rowCount;
 		for (rowCount = 0; flatFlowtable[rowCount * 5] != 0; rowCount++)
@@ -91,6 +114,8 @@ public class Switch extends Node {
 		}
 	}
 
+	/* Send a hello packet to the controller.
+	*/
 	private synchronized void sendHello() {
 		byte[] data = { OFPT_HELLO };
 		DatagramPacket hello = new DatagramPacket(data, data.length);
