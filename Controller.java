@@ -1,3 +1,8 @@
+/** Controller class for custom implementation of OpenFlow Software Defined Network.
+    Contains information about a hard-coded network layout, which is sent out to each
+    switch to define the network. @author: Jack Gilbride.
+*/
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -23,9 +28,9 @@ public class Controller extends Node {
 
 	/**
 	 * 2D Array storing the preconfiguration information of the controller. Column
-	 * 0 = destination port numbers, column 1 = source port numbers, column 2 =
-	 * router number, column 3 = input port of switch, column 4 = output port of
-	 * switch
+	 * 0 = final destination port number, column 1 = original source port number, 
+	 * column 2 = current router number, column 3 = port number of previous hop, 
+	 * column 4 = port number of next hop.
 	 */
 	private static final byte[][] PRECONF_INFO = { { E1, E2, R1, E1, R4 }, { E1, E2, R4, R1, R7 },
 			{ E1, E2, R7, R4, R8 }, { E1, E2, R8, R7, E2 }, { E1, E3, R1, E1, R2 }, { E1, E3, R2, R1, R5 },
@@ -39,9 +44,11 @@ public class Controller extends Node {
 			{ E4, E3, R3, E4, R6 }, { E4, E3, R6, R3, R4 }, { E4, E3, R4, R6, R7 }, { E4, E3, R7, R4, R5 },
 			{ E4, E3, R5, R7, E3 } };
 
+	/** Arrays to store the other nodes once they are initialised.*/
 	private Switch[] switches;
 	private EndNode[] endNodes;
 
+	/* Mainline. Contruct a new Controller and start its functionality. */
 	public static void main(String[] args) {
 		try {
 			terminal = new Terminal("Controller");
@@ -51,6 +58,10 @@ public class Controller extends Node {
 		}
 	}
 
+	/* Controller constructor. Initialises the Controller as well as each of
+	*  the switches and end nodes in the network. Passed the terminal that it
+	*  will use for output.
+	*/
 	Controller(Terminal terminal) throws SocketException {
 		// Initialise Controller
 		Controller.terminal = terminal;
@@ -68,15 +79,26 @@ public class Controller extends Node {
 		}
 	}
 
+	/* Start the initial switch. Once the first switch has finished setup the second
+	*  switch will start, and so on.
+	*/
 	public synchronized void start() throws Exception {
 		startSwitch(R1);
 	}
 
+	/* Call the start method of the next switch, beginning its setup sequence
+	*  where the switch will send a hello packet.
+	*/
 	private synchronized void startSwitch(int routerNumber) {
 		Switch s = switches[routerNumber];
 		s.start();
 	}
 
+	/* Send the relevant flow table to the relevant switch. Parses out the relevant
+	*  information from the preconfiguration information into a two-dimensional
+	*  array. Converts this into a one-dimensional array which can be encapsulated
+	*  into a Datagram Packet to send to the switch.
+	*/
 	private synchronized void sendTable(byte switchNumber) {
 		// create a new flow mod table; the row corresponds to the switch number
 		byte[] table = new byte[PRECONF_INFO.length * PRECONF_INFO[0].length];
@@ -106,13 +128,14 @@ public class Controller extends Node {
 		InetSocketAddress dstAddress = new InetSocketAddress(LOCALHOST, BASE_PORT_NUMBER + switchNumber);
 		packet.setSocketAddress(dstAddress);
 		try {
-			this.socket.send(packet); // try to send the flow table to the
-										// switch
+			this.socket.send(packet); // try to send the flow table to the switch
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
+	/* Send a packet of type OPFT_HELLO when passed the destination address.
+	*/
 	private synchronized void sendHello(InetSocketAddress dstAddress) {
 		byte[] data = { OFPT_HELLO };
 		DatagramPacket hello = new DatagramPacket(data, data.length);
@@ -126,6 +149,8 @@ public class Controller extends Node {
 		}
 	}
 
+	/* Send a packet of type OPFT_FEATURES_REQUEST when passed the destination address.
+	*/
 	private synchronized void sendFeaturesRequest(InetSocketAddress dstAddress) {
 		byte[] data = { OFPT_FEATURES_REQUEST };
 		DatagramPacket featuresRequest = new DatagramPacket(data, data.length);
@@ -139,17 +164,21 @@ public class Controller extends Node {
 		}
 	}
 
+	/* Implementation of the abstract class in Node.java which handles received Datagram Packets.
+	*/
 	@Override
 	public synchronized void onReceipt(DatagramPacket packet) {
 		byte[] data = packet.getData();
 		int port = packet.getPort() - BASE_PORT_NUMBER;
 		byte type = getType(data);
 		switch (type) {
+		// Handle a Hello packet by replying with a Hello and a Features Request.		
 		case OFPT_HELLO:
 			terminal.println("Hello packet received from switch number " + port + ".");
 			sendHello((InetSocketAddress) packet.getSocketAddress());
 			sendFeaturesRequest((InetSocketAddress) packet.getSocketAddress());
 			break;
+		// Handle a Features Reply by printing the features to the terminal.
 		case OFPT_FEATURES_REPLY:
 			terminal.println("Features reply received from switch number " + port + ".");
 			if (data[1] == BASIC_FEATURES) {
@@ -159,12 +188,16 @@ public class Controller extends Node {
 			}
 			sendTable((byte) port);
 			break;
+		// Handle a confirmation of completion of flow mod as the end of the setup sequence
+		// for that switch. Start the next swtich.
 		case OFPT_FLOW_MOD:
 			terminal.println("Flow mod complete for switch number " + port + ".");
 			if (port < NUM_SWITCHES) {
 				startSwitch(port + 1); // flow mod is complete, start the next switch
 			}
 			break;
+		// Handle an unrecognised packet forwarded by a switch by telling that switch to 
+		// drop the packet.
 		case OFPT_PACKET_IN:
 			setType(data, OFPT_FLOW_REMOVED);
 			packet.setData(data);
