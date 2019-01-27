@@ -1,3 +1,8 @@
+/** Publisher class for custom Publish-Subscribe protocol. Takes user input and creates
+  * topics, which it can then publish messages for. Interacts with the Broker who stores
+  * what topics exist as well as the list of subscribers to each topic. @author: Jack Gilbride
+  */
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -16,6 +21,9 @@ public class Publisher extends Node {
 	/** Map topic numbers to topic names, map agreed with Broker. */
 	private Map<Integer, String> topicNumbers;
 
+	/* Constructor of the Publisher. Initialises the terminal, map of
+	 * topic names and numbers, the listener and the datagram socket.
+	 */
 	Publisher(Terminal terminal) {
 		try {
 			this.terminal = terminal;
@@ -28,6 +36,9 @@ public class Publisher extends Node {
 		topicNumbers = new HashMap<Integer, String>();
 	}
 
+	/* Mainline of the publisher. Initialises the terminal, calls the contructor
+	 * and the start method.
+	 */
 	public static void main(String[] args) {
 		try {
 			Terminal terminal = new Terminal("Publisher");
@@ -38,6 +49,9 @@ public class Publisher extends Node {
 		}
 	}
 
+	/* Function to create a topic. Takes user input for the topic name and sends the packet to the
+	 * broker to create the packet.
+	 */
 	private void createTopic() {
 		String topic = terminal.read("Please enter a topic to create: ");
 		terminal.println("Please enter a topic to create: " + topic);
@@ -53,6 +67,9 @@ public class Publisher extends Node {
 		terminal.println("Packet sent");
 	}
 
+	/* Function to take user input and interact with the broker to publish a message to subscribers of a particular
+	 * topic. Contains simple error handling to check if the topic exists before the packet is sent to the broker.
+	 */
 	private boolean publishMessage() {
 		String topic = terminal.read("Please enter the name of the topic you want to publish a message for: ");
 		terminal.println("Please enter the name of the topic you want to publish a message for: " + topic);
@@ -80,6 +97,9 @@ public class Publisher extends Node {
 		return false;
 	}
 
+	/* Start function of the publisher. Takes user input to either create a topic or publish a message, then waits
+	 * for an acknowledgement and a reply message. Assumes that the ack or message will not be lost across the medium.
+	 */
 	public synchronized void start() throws Exception {
 		while (true) {
 			String startingString = terminal
@@ -101,6 +121,9 @@ public class Publisher extends Node {
 		}
 	}
 
+	/* Implementation of the abstract method in Node.java to handle Datagram Packets. Prints either a message or
+	 * an ack from the broker to the terminal, no extra processing of received packets is required.
+	 */
 	@Override
 	public synchronized void onReceipt(DatagramPacket packet) {
 		this.notify();
