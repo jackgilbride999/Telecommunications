@@ -1,3 +1,10 @@
+
+/** EndNode class for custom implementation of OpenFlow Software Defined Network.
+    Contains I/O handling and packet forwarding into the network. The end node 
+    only decides the destination of the message and has no overall view of the 
+    network or the OpenFlow protocol. @author: Jack Gilbride.
+*/
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -12,6 +19,8 @@ public class EndNode extends Node {
 	private static final String WAIT = "WAIT";
 	private static final String SEND = "SEND";
 
+	/** EndNode constructor. Initialises the terminal, datagram socket and listener of the end node.
+	*/
 	EndNode(byte socketNumber) throws SocketException {
 		this.socketNumber = socketNumber;
 		this.terminal = new Terminal("EndNode " + (socketNumber-NUM_SWITCHES));
@@ -21,6 +30,10 @@ public class EndNode extends Node {
 		listener.go();
 	}
 
+	/** Implementation of the abstract onReceipt function in Node.java. If the datagram received is a
+	  * message, it is printed to the terminal. Otherwise if it is an initialisation message from a
+	  * switch, that switch's address is set as the destination address for all packets sent out.
+	  */
 	@Override
 	public synchronized void onReceipt(DatagramPacket packet) {
 		this.terminal.println("Got a packet.");
@@ -36,6 +49,9 @@ public class EndNode extends Node {
 		this.start();
 	}
 
+	/* Start method of the end node which lets the user choose whether they would like to send a message
+	 * or wait for a message.
+	 */
 	public synchronized void start() {
 		while (true) {
 			String chosenState = terminal.read("Please enter SEND or WAIT to continue: ").toUpperCase();
@@ -51,6 +67,9 @@ public class EndNode extends Node {
 		}
 	}
 
+	/* Function to send a message to another end node. Asks the user which end node to send the
+	 * message to as well as the content of the message. Sends the message into the network.
+	 */
 	private synchronized void sendMessage() {
 		String dest;
 		boolean validInput = false;
