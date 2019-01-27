@@ -169,6 +169,12 @@ public class Switch extends Node {
 		}
 	}
 
+	/** Handle a packet not sent by the controller. This is a message meant to be forwared
+	  * based on the switch's flow table. If the source and destination are not recognised
+	  * together in a row of the flow table, the packet is forwarded to the controller to
+	  * find out what to do with it. Otherwise the packet is forawrded to the next hop on
+	  * the flow table.
+	  */
 	private synchronized void handleEndNodePacket(DatagramPacket packet) {
 		byte[] data = packet.getData();
 		if (getType(data) == NODE_MESSAGE) {
@@ -207,6 +213,12 @@ public class Switch extends Node {
 		}
 	}
 
+	/* Takes the data from a message and the port number of the previous hop of the packet.
+	 * Checks the flowtable for a row with the correct previous hop, source address and 
+	 * destination address to return the next hop in the table. If no next hop is found,
+	 * the next hop is set as the controller port so that the controller can decide what to
+	 * do with the packet.
+	 */
 	private synchronized byte checkFlowtable(byte[] data, int port) {
 		assert (getType(data) == NODE_MESSAGE);
 		byte src = getMessageSource(data);
