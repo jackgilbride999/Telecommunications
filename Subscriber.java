@@ -1,3 +1,12 @@
+/** Subscriber class for custom Publish-Subscribe protocol. Takes user input via a
+  * terminal and interacts with the broker to subscribe and unsubscribe from topics.
+  * Due to problems with threading I could not figure out how to get the subscriber
+  * to wait for user input to subscribe and unsubscribe from topics while also waiting
+  * on incoming packets to print messages of the topics that it is subscribed to. As a 
+  * result the current implementation can subscribe to exactly one topic, then going to 
+  * a state where it waits for messages from that topic. @author: Jack Gilbride
+  */
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -12,6 +21,8 @@ public class Subscriber extends Node {
 	private InetSocketAddress dstAddress;
 	private boolean invalidInput;
 
+	/* Subscriber constructor. Initialises the terminal, datagram socket and listener.
+	*/
 	Subscriber(Terminal terminal) {
 		invalidInput = true;
 		try {
@@ -23,6 +34,10 @@ public class Subscriber extends Node {
 		}
 	}
 
+	/* Start method of subscriber. The initial loop runs while the subscriber has not successfully subscribed to a
+	 * topic. invalidInput may be set to false in the onReceipt method so that the initial loop is broken and the
+	 * subscriber enters a state of permanently waiting for messages.
+	 */
 	public synchronized void start() throws Exception {
 		while (invalidInput == true) {
 			String startingString = terminal
@@ -47,6 +62,9 @@ public class Subscriber extends Node {
 		}
 	}
 
+	/* Takes user input about the name of the topic to subscribe to and sends a subscription
+	 * packet to the broker.
+	 */
 	public synchronized void subscribe() {
 		String data = terminal.read("Please enter a topic to subscribe to: ");
 		terminal.println("Please enter a topic to subscribe to: " + data);
@@ -59,6 +77,9 @@ public class Subscriber extends Node {
 		terminal.println("Packet sent");
 	}
 
+	/* Takes user input about the name of the topic to unsubscribe from and sends an 
+	 * unsubscription packet to the broker.
+	 */
 	public synchronized void unsubscribe() {
 		String data = terminal.read("Please enter a topic to unsubscribe from: ");
 		terminal.println("Please enter a topic to unsubscribe from: " + data);
@@ -71,6 +92,9 @@ public class Subscriber extends Node {
 		terminal.println("Packet sent");
 	}
 
+	/* Mainline for subscriber. Initialises the terminal, calls the constructor and start
+	 * method.
+	 */
 	public static void main(String[] args) {
 		try {
 			Terminal terminal = new Terminal("Subscriber");
@@ -79,6 +103,10 @@ public class Subscriber extends Node {
 		}
 	}
 
+	/* Implementation of the abstract method in Node.java to handle incoming Datagram Packets. Prints either
+	 * an ack, a message or a publication. May change the value of 'invalidInput' based on a received message
+	 * to determine whether the subscriber can exit the state of looking for a topic to subscribe to.
+	 */
 	@Override
 	public synchronized void onReceipt(DatagramPacket packet) {
 		try {
