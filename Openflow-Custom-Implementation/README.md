@@ -5,7 +5,7 @@ The *Terminal* class, the constructor of *Node* and the *Listener* class were pr
 
 By default the network created when the code is run is a fixed network, containing eight switches, one controller and four end nodes. The end nodes become aware of how to contact the network once contacted by their closest switch, but have no overall view of the network.
 
-## USAGE:
+## Usage
 1. Run the program containing all classes in the repository.
 2. A seperate terminal window will open for each node in the network. Each terminal provides the user with output about that node. The terminals for *EndNodes* also take user input.
 3. The *EndNodes* will prompt the user to wait for incoming messages or send messages.
