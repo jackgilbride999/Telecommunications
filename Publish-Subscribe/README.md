@@ -1,9 +1,9 @@
 # Publish-Subscribe
-Java implementation of a Publish Subscribe protocol. Uses Datagrams to communicate between a subscriber, a broker and a publisher. See the full report [here](17340868-Jack-Joseph-Gilbride-PublishSubscribe-Report.pdf), which details the entire technical specification of the project.
+Java implementation of a Publish-Subscribe protocol, which uses datagrams to communicate between a Subscriber, a Broker and a Publisher. See the full report [here](17340868-Jack-Joseph-Gilbride-PublishSubscribe-Report.pdf), which details the entire technical specification of the project.
 
 The code from *Terminal.java* as well as the *Constructor* and *Listener* class in Node.java were provided to give assistance with I/O and threading. The remaining code was written by me to build the Publish-Subscribe protocol.
 
-## USAGE:
+## Usage
 1. Open a Java project containing all of the classes in the repository.
 2. Run the *Broker*, the *Publisher* and the *Subscriber* seperately.
 3. The *Broker*, *Publisher* and *Subscriber* will each open up their terminal windows. Each window displays output to the user. The windows for the *Publisher* and *Subscriber* also take input.
@@ -13,6 +13,6 @@ The code from *Terminal.java* as well as the *Constructor* and *Listener* class 
 7. Enter `PUBLISH` in the publisher window to publish a message for a topic. Enter the name of the topic. Enter the message that you would like to publish. Do this one or more times.
 8. The *Broker* will look at these messages and see if their topics match any *Subscribers*. If a *Subscriber* is subscribed to the topic, they will receive that message and output it on their terminal.
 
-## KNOWN LIMITATIONS:
+## Known Limitations
 - In the current implementation of the protocol only one *Broker*, *Subscriber* and *Publisher* may exist at one time. Trying to run multiple instances of any node will bind two nodes to the same DatagramSocket address and cause a runtime error.
 - Currently the *Subscriber* has two states. The first state is before the user has subscribed to a topic, where the terminal can take user input. The second state is after the user has subcribed to a topic, where the *Subscriber* waits for published messages in DatagramPackets. This means that the user is limited to subscribing to one topic and not being able to enter any more input. The system may be extended to allow multiple subscriptions and unsubscriptions, as the *Broker* already contains functionality to allow unsubscriptions.
