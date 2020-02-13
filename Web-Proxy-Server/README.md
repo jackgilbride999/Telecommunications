@@ -8,4 +8,6 @@ The program should be able to:
 4. Effectively cache requests locally and thus save bandwidth. You must gather timing and bandwidth data to prove the efficiency of your proxy.
 5. Handle multiple requests simultaneously by implementing a threaded server.
 
+![System Architecture](System-Architecture.PNG)
+
 The program can be written in a programming language of your choice. However, you must ensure that you do not overuse any API or Library functionality that implements the majority of the work for you.

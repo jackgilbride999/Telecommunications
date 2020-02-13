@@ -6,7 +6,7 @@ class ThreadProxy extends Thread {
     private final String SERVER_URL;
     private final int SERVER_PORT;
     ThreadProxy(Socket sClient, String ServerUrl, int ServerPort) {
-        this.sClient = sClient;
+        this.sClient = sClient; // the socket connecting this thread to its endpoint
         this.SERVER_URL = ServerUrl;
         this.SERVER_PORT = ServerPort;
         System.out.println("Created a new ThreadProxy");
