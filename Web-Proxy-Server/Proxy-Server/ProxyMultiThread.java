@@ -1,3 +1,6 @@
+// Usage javac ProxyMultiThread.java
+// Usage java ProxyMultithread 192.168.1.10 8080 9999
+
 import java.io.*;
 import java.net.*;
 
@@ -22,16 +25,17 @@ public class ProxyMultiThread {
 		try {
             if (args.length != 3)
                 throw new IllegalArgumentException("insuficient arguments");
-            // and the local port that we listen for connections on
             String host = args[0];
             int remoteport = Integer.parseInt(args[1]);
-            int localport = Integer.parseInt(args[2]);
+            int localport = Integer.parseInt(args[2]);  // the local port that the program will listen for connections on
             // Print a start-up message
             System.out.println("Starting proxy for " + host + ":" + remoteport
                     + " on port " + localport);
-            ServerSocket server = new ServerSocket(localport);
+            ServerSocket server = new ServerSocket(localport);      // create a new server socket on the local port
             while (true) {
-                new ThreadProxy(server.accept(), host, remoteport);
+                Socket connectionSocket = server.accept();          // Listen for a connection to be made to server and accept it. Blocks until a connection is made.
+                new ThreadProxy(connectionSocket, host, remoteport);// Create a new ThreadProxy given the connection socket
+                System.out.println("Created new ThreadProxy");
             }
         } catch (Exception e) {
             System.err.println(e);

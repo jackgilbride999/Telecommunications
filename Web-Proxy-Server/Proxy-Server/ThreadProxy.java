@@ -1,6 +1,3 @@
-// Usage javac ProxyMultiThread.java
-// Usage java ProxyMultithread 192.168.1.10 8080 9999
-
 import java.io.*;
 import java.net.*;
 
@@ -9,10 +6,12 @@ class ThreadProxy extends Thread {
     private final String SERVER_URL;
     private final int SERVER_PORT;
     ThreadProxy(Socket sClient, String ServerUrl, int ServerPort) {
+        this.sClient = sClient;
         this.SERVER_URL = ServerUrl;
         this.SERVER_PORT = ServerPort;
-        this.sClient = sClient;
+        System.out.println("Created a new ThreadProxy");
         this.start();
+        System.out.println("Started ThreadProxy");
     }
     @Override
     public void run() {
@@ -25,6 +24,7 @@ class ThreadProxy extends Thread {
             // connects a socket to the server
             try {
                 server = new Socket(SERVER_URL, SERVER_PORT);
+                System.out.println("Created new socket");
             } catch (IOException e) {
                 PrintWriter out = new PrintWriter(new OutputStreamWriter(
                         outToClient));
