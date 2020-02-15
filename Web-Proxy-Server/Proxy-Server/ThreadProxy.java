@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
 class ThreadProxy extends Thread {
     private Socket sClient;
@@ -23,15 +24,26 @@ class ThreadProxy extends Thread {
             final InputStream inFromClient = sClient.getInputStream();
             final OutputStream outToClient = sClient.getOutputStream();
 
+            // Collect the browser's request into an ArrayList
+            ArrayList<String> requestLines = new ArrayList<String>();
             InputStreamReader inFromClientReader = new InputStreamReader(inFromClient);
             BufferedReader in =  new BufferedReader(inFromClientReader); 
-            String browserRequest = "";
-            String s = "";
-            while (!(s = in.readLine()).equals("")) {
-                System.out.println(browserRequest + " " + this.getId());
-                browserRequest += s;
+            String requestLine = "";
+            while (!(requestLine = in.readLine()).equals("")) {
+                requestLines.add(requestLine);
             }
-            System.out.println("Done " + this.getId());
+            String firstLine;
+            if((firstLine = requestLines.get(0)).startsWith("CONNECT")){
+                int spaceIndex = firstLine.indexOf(" ");
+                int colonIndex = firstLine.indexOf(":");
+                int secondSpaceIndex = firstLine.indexOf(" ", colonIndex);
+                String IP = firstLine.substring(spaceIndex+1, colonIndex);
+                String port = firstLine.substring(colonIndex + 1, secondSpaceIndex);
+                System.out.println("You want to connect to " + IP + " on port " + port + ".");
+            }
+
+
+
             Socket client = null, server = null;
             // connects a socket to the server
             try {
