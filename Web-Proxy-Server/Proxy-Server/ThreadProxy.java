@@ -5,14 +5,16 @@ class ThreadProxy extends Thread {
     private Socket sClient;
     private final String SERVER_URL;
     private final int SERVER_PORT;
+
     ThreadProxy(Socket sClient, String ServerUrl, int ServerPort) {
-        this.sClient = sClient; // the socket connecting this thread to its endpoint
-        this.SERVER_URL = ServerUrl;
-        this.SERVER_PORT = ServerPort;
+        this.sClient = sClient;         // the socket connecting this thread to its endpoint e.g. port 9999
+        this.SERVER_URL = ServerUrl;    // e.g. 192.168.1.10 
+        this.SERVER_PORT = ServerPort;  // e.g. 8080
         System.out.println("Created a new ThreadProxy");
         this.start();
         System.out.println("Started ThreadProxy");
     }
+
     @Override
     public void run() {
         try {
@@ -20,6 +22,8 @@ class ThreadProxy extends Thread {
             byte[] reply = new byte[4096];
             final InputStream inFromClient = sClient.getInputStream();
             final OutputStream outToClient = sClient.getOutputStream();
+
+            
             Socket client = null, server = null;
             // connects a socket to the server
             try {
