@@ -23,7 +23,15 @@ class ThreadProxy extends Thread {
             final InputStream inFromClient = sClient.getInputStream();
             final OutputStream outToClient = sClient.getOutputStream();
 
-            
+            InputStreamReader inFromClientReader = new InputStreamReader(inFromClient);
+            BufferedReader in =  new BufferedReader(inFromClientReader); 
+            String browserRequest = "";
+            String s = "";
+            while (!(s = in.readLine()).equals("")) {
+                System.out.println(browserRequest + " " + this.getId());
+                browserRequest += s;
+            }
+            System.out.println("Done " + this.getId());
             Socket client = null, server = null;
             // connects a socket to the server
             try {

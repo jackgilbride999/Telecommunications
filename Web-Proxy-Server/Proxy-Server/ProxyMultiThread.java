@@ -34,11 +34,6 @@ public class ProxyMultiThread {
             ServerSocket server = new ServerSocket(browserPort);      // create a new server socket on the local port
             while (true) {
                 Socket connectionSocket = server.accept();          // Listen for a connection to be made to server and accept it. Blocks until a connection is made.
-                BufferedReader in =  new BufferedReader(new InputStreamReader(connectionSocket.getInputStream())); 
-                String s;
-                while ((s = in.readLine()) != null) {
-                    System.out.println(s);
-                }
                 new ThreadProxy(connectionSocket, hostIP, remotePort);// Create a new ThreadProxy given the connection socket
                 System.out.println("Created new ThreadProxy");
             }
