@@ -2,6 +2,8 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
+import RequestHandler.ClientToServerHttpsTransmit;
+
 class ThreadProxy extends Thread {
     
     // Socket connected to client passed by Proxy server
@@ -140,9 +142,23 @@ class ThreadProxy extends Thread {
             BufferedWriter severWriter = new BufferedWriter(new OutputStreamWriter(serverSocket.getOutputStream()));
             BufferedReader serverReader = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
 
+            ClientToServerHttpsTransmitter clientToServerHttpsTransmitter = new ClientToServerHttpsTransmitter(clientSocket, serverSocket);
+            clientToServerHttpsTransmitter = new Thread(clientToServerHttpsTransmitter);
+            clientToServerHttpsTransmitter.start();
         }
         catch (IOException e){
             e.printStackTrace();
+        }
+    }
+
+    class ClientToServerHttpsTransmitter implements Runnable{
+
+        InputStream clientStream;
+        OutputStream serverStream;
+
+        public ClientToServerHttpsTransmitter(Socket clientSocket, Socket serverSocket){
+            this.clientStream = clientSocket.getInputStream();
+            this.serverStream = clientSocket.getOutputStream();
         }
     }
 }
