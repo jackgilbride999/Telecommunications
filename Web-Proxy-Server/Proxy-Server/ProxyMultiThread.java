@@ -23,19 +23,12 @@ public class ProxyMultiThread {
 
 	public static void main(String[] args) {
 		try {
-            if (args.length != 3)
-                throw new IllegalArgumentException("insuficient arguments");
-            String hostIP = args[0];                      // e.g. 192.168.1.10
-            int remotePort = Integer.parseInt(args[1]); // e.g. 8080
-            int browserPort = Integer.parseInt(args[2]);  // the local port that the program will listen for connections on
-            // Print a start-up message
-            System.out.println("Starting proxy for " + hostIP + ":" + remotePort
-                    + " on port " + browserPort);
+
+            int browserPort = 9999;  // the local port that the program will listen for connections on
             ServerSocket server = new ServerSocket(browserPort);      // create a new server socket on the local port
             while (true) {
                 Socket connectionSocket = server.accept();          // Listen for a connection to be made to server and accept it. Blocks until a connection is made.
-                new ThreadProxy(connectionSocket, hostIP, remotePort);// Create a new ThreadProxy given the connection socket
-                System.out.println("Created new ThreadProxy");
+                new ThreadProxy(connectionSocket);// Create a new ThreadProxy given the connection socket            }
             }
         } catch (Exception e) {
             System.err.println(e);

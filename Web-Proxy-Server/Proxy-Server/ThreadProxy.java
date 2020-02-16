@@ -3,17 +3,25 @@ import java.net.*;
 import java.util.ArrayList;
 
 class ThreadProxy extends Thread {
-    private Socket sClient;
-    private final String SERVER_URL;
-    private final int SERVER_PORT;
+    
+    // Socket connected to client passed by Proxy server
+    private Socket clientSocket;
 
-    ThreadProxy(Socket sClient, String ServerUrl, int ServerPort) {
-        this.sClient = sClient;         // the socket connecting this thread to its endpoint e.g. port 9999
-        this.SERVER_URL = ServerUrl;    // e.g. 192.168.1.10 
-        this.SERVER_PORT = ServerPort;  // e.g. 8080
-        System.out.println("Created a new ThreadProxy");
-        this.start();
-        System.out.println("Started ThreadProxy");
+    private BufferedReader clientReader;
+
+    private BufferedWriter clientWriter;
+
+
+    ThreadProxy(Socket clientSocket) {
+        try{
+            this.clientSocket = clientSocket;
+            clientReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            clientWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+            this.start();
+        }
+        catch (IOException e){
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -21,43 +29,40 @@ class ThreadProxy extends Thread {
         try {
             final byte[] request = new byte[1024];
             byte[] reply = new byte[4096];
-            final InputStream inFromClient = sClient.getInputStream();
-            final OutputStream outToClient = sClient.getOutputStream();
+            final InputStream inFromClient = clientSocket.getInputStream();
+            final OutputStream outToClient = clientSocket.getOutputStream();
 
-            // Collect the browser's request into an ArrayList
-            ArrayList<String> requestLines = new ArrayList<String>();
-            InputStreamReader inFromClientReader = new InputStreamReader(inFromClient);
-            BufferedReader in =  new BufferedReader(inFromClientReader); 
-            String requestLine = "";
-            while (!(requestLine = in.readLine()).equals("")) {
-                requestLines.add(requestLine);
-            }
-            String firstLine;
-            if((firstLine = requestLines.get(0)).startsWith("CONNECT")){
-                int spaceIndex = firstLine.indexOf(" ");
-                int colonIndex = firstLine.indexOf(":");
-                int secondSpaceIndex = firstLine.indexOf(" ", colonIndex);
-                String IP = firstLine.substring(spaceIndex+1, colonIndex);
-                String port = firstLine.substring(colonIndex + 1, secondSpaceIndex);
-                System.out.println("You want to connect to " + IP + " on port " + port + ".");
+
+            /*
+                - Get request from client
+                - Parse out the request type 
+                - Parse out URL: the data between the first and second spaces
+            */
+            String requestLine = clientReader.readLine();
+            String requestType = requestLine.substring(0, requestLine.indexOf(' '));
+            String requestUrl = requestLine.substring(requestLine.indexOf(' ')+1);
+            requestUrl = requestUrl.substring(0, requestUrl.indexOf(' '));
+            if(requestType.equals("CONNECT")){
+                System.out.println("CONNECT request for " + requestUrl);
+                handleHTTPSRequest(requestUrl);
             }
 
 
 
-            Socket client = null, server = null;
+            Socket client = null, webServer = null;
             // connects a socket to the server
-            try {
-                server = new Socket(SERVER_URL, SERVER_PORT);
-                System.out.println("Created new socket");
+           /* try {
+                webServer = new Socket(url, port);
+                System.out.println("Created new socket " + url + ":" + port);
             } catch (IOException e) {
                 PrintWriter out = new PrintWriter(new OutputStreamWriter(
                         outToClient));
                 out.flush();
                 throw new RuntimeException(e);
             }
-            // a new thread to manage streams from server to client (DOWNLOAD)
-            final InputStream inFromServer = server.getInputStream();
-            final OutputStream outToServer = server.getOutputStream();
+*/
+            final InputStream inFromServer = webServer.getInputStream();
+            final OutputStream outToServer = webServer.getOutputStream();
             // a new thread for uploading to the server
             new Thread() {
                 public void run() {
@@ -66,6 +71,7 @@ class ThreadProxy extends Thread {
                         while ((bytes_read = inFromClient.read(request)) != -1) {
                             outToServer.write(request, 0, bytes_read);
                             outToServer.flush();
+                            System.out.println("Forwarded to server " + request);
                             //TODO CREATE YOUR LOGIC HERE
                         }
                     } catch (IOException e) {
@@ -83,14 +89,15 @@ class ThreadProxy extends Thread {
                 while ((bytes_read = inFromServer.read(reply)) != -1) {
                     outToClient.write(reply, 0, bytes_read);
                     outToClient.flush();
+                    System.out.println("Forwarded to client " + reply);
                     //TODO CREATE YOUR LOGIC HERE
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
                 try {
-                    if (server != null)
-                        server.close();
+                    if (webServer != null)
+                        webServer.close();
                     if (client != null)
                         client.close();
                 } catch (IOException e) {
@@ -98,8 +105,43 @@ class ThreadProxy extends Thread {
                 }
             }
             outToClient.close();
-            sClient.close();
+            clientSocket.close();
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleHTTPSRequest(String requestURL){
+        String splitUrl = requestUrl.split(":");
+        requestURL = split[0];
+        int requestPort = Integer.parseInt(split[1]);
+
+        try{
+            // We have read the first line of the request from the reader.
+            // Throw away the rest from the buffer
+			for(int i=0;i<5;i++){
+				clientReader.readLine();
+            }
+            
+            /*
+                - Get the IP of the server
+                - Open a socket to the server
+                - Let the client know that connection was established
+            */
+            InetAddress serverAddress = InetAddress.getByName(url);
+            Socket serverSocket = new Socket(serverAddress, requestURL);
+			String establishedMessage = "HTTP/1.0 200 Connection established\r\n" +
+					"Proxy-Agent: ProxyServer/1.0\r\n" +
+                    "\r\n";
+            clientWriter.write(establishedMessage);
+            clientWriter.flush();
+
+
+            BufferedWriter severWriter = new BufferedWriter(new OutputStreamWriter(serverSocket.getOutputStream()));
+            BufferedReader serverReader = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
+
+        }
+        catch (IOException e){
             e.printStackTrace();
         }
     }
