@@ -2,10 +2,9 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
-import RequestHandler.ClientToServerHttpsTransmit;
 
-class ThreadProxy extends Thread {
-    
+class ThreadProxy implements Runnable {
+
     // Socket connected to client passed by Proxy server
     private Socket clientSocket;
 
@@ -13,15 +12,12 @@ class ThreadProxy extends Thread {
 
     private BufferedWriter clientWriter;
 
-
     ThreadProxy(Socket clientSocket) {
-        try{
+        try {
             this.clientSocket = clientSocket;
             clientReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             clientWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
-            this.start();
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -34,35 +30,27 @@ class ThreadProxy extends Thread {
             final InputStream inFromClient = clientSocket.getInputStream();
             final OutputStream outToClient = clientSocket.getOutputStream();
 
-
             /*
-                - Get request from client
-                - Parse out the request type 
-                - Parse out URL: the data between the first and second spaces
-            */
+             * - Get request from client - Parse out the request type - Parse out URL: the
+             * data between the first and second spaces
+             */
             String requestLine = clientReader.readLine();
             String requestType = requestLine.substring(0, requestLine.indexOf(' '));
-            String requestUrl = requestLine.substring(requestLine.indexOf(' ')+1);
+            String requestUrl = requestLine.substring(requestLine.indexOf(' ') + 1);
             requestUrl = requestUrl.substring(0, requestUrl.indexOf(' '));
-            if(requestType.equals("CONNECT")){
+            if (requestType.equals("CONNECT")) {
                 System.out.println("CONNECT request for " + requestUrl);
                 handleHTTPSRequest(requestUrl);
             }
 
-
-
             Socket client = null, webServer = null;
             // connects a socket to the server
-           /* try {
-                webServer = new Socket(url, port);
-                System.out.println("Created new socket " + url + ":" + port);
-            } catch (IOException e) {
-                PrintWriter out = new PrintWriter(new OutputStreamWriter(
-                        outToClient));
-                out.flush();
-                throw new RuntimeException(e);
-            }
-*/
+            /*
+             * try { webServer = new Socket(url, port);
+             * System.out.println("Created new socket " + url + ":" + port); } catch
+             * (IOException e) { PrintWriter out = new PrintWriter(new OutputStreamWriter(
+             * outToClient)); out.flush(); throw new RuntimeException(e); }
+             */
             final InputStream inFromServer = webServer.getInputStream();
             final OutputStream outToServer = webServer.getOutputStream();
             // a new thread for uploading to the server
@@ -74,7 +62,7 @@ class ThreadProxy extends Thread {
                             outToServer.write(request, 0, bytes_read);
                             outToServer.flush();
                             System.out.println("Forwarded to server " + request);
-                            //TODO CREATE YOUR LOGIC HERE
+                            // TODO CREATE YOUR LOGIC HERE
                         }
                     } catch (IOException e) {
                     }
@@ -92,7 +80,7 @@ class ThreadProxy extends Thread {
                     outToClient.write(reply, 0, bytes_read);
                     outToClient.flush();
                     System.out.println("Forwarded to client " + reply);
-                    //TODO CREATE YOUR LOGIC HERE
+                    // TODO CREATE YOUR LOGIC HERE
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -113,52 +101,117 @@ class ThreadProxy extends Thread {
         }
     }
 
-    private void handleHTTPSRequest(String requestURL){
-        String splitUrl = requestUrl.split(":");
-        requestURL = split[0];
-        int requestPort = Integer.parseInt(split[1]);
+    private void handleHTTPSRequest(String requestUrl) {
+        String splitUrl[] = requestUrl.split(":");
+        requestUrl = splitUrl[0];
+        int requestPort = Integer.parseInt(splitUrl[1]);
 
-        try{
+        try {
             // We have read the first line of the request from the reader.
             // Throw away the rest from the buffer
-			for(int i=0;i<5;i++){
-				clientReader.readLine();
+            for (int i = 0; i < 5; i++) {
+                clientReader.readLine();
             }
-            
+
             /*
-                - Get the IP of the server
-                - Open a socket to the server
-                - Let the client know that connection was established
-            */
-            InetAddress serverAddress = InetAddress.getByName(url);
-            Socket serverSocket = new Socket(serverAddress, requestURL);
-			String establishedMessage = "HTTP/1.0 200 Connection established\r\n" +
-					"Proxy-Agent: ProxyServer/1.0\r\n" +
-                    "\r\n";
+             * - Get the IP of the server 
+             * - Open a socket to the server 
+             * - Let the client know that connection was established
+             */
+            InetAddress serverAddress = InetAddress.getByName(requestUrl);
+            Socket serverSocket = new Socket(serverAddress, requestPort);
+            String establishedMessage = "HTTP/1.0 200 Connection established\r\n" + "Proxy-Agent: ProxyServer/1.0\r\n"
+                    + "\r\n";
             clientWriter.write(establishedMessage);
             clientWriter.flush();
 
-
-            BufferedWriter severWriter = new BufferedWriter(new OutputStreamWriter(serverSocket.getOutputStream()));
+            BufferedWriter serverWriter = new BufferedWriter(new OutputStreamWriter(serverSocket.getOutputStream()));
             BufferedReader serverReader = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
 
-            ClientToServerHttpsTransmitter clientToServerHttpsTransmitter = new ClientToServerHttpsTransmitter(clientSocket, serverSocket);
+            // Handle the transmission from Client to Server in a seperate thread
+            ClientToServerHttpsTransmitter clientToServerHttpsTransmitter = new ClientToServerHttpsTransmitter(
+                    clientSocket, serverSocket);
             clientToServerHttpsTransmitter = new Thread(clientToServerHttpsTransmitter);
             clientToServerHttpsTransmitter.start();
-        }
-        catch (IOException e){
+
+            // Handle the transmission from Server to Client in this thread
+            /*
+            - Create a data buffer
+            - While there is data being sent by the server, add to buffer
+            - When data is not available from the server, use the time to flush to the client
+            */
+            try{
+                byte[] dataBuffer = new byte[4096];
+                int read;
+                read = serverSocket.getInputStream().read(dataBuffer);
+                while(read >= 0){
+                    if(read > 0){
+                        clientSocket.getOutputStream().write(dataBuffer, 0, read);
+                        if(serverSocket.getInputStream().available() < 1){
+                            clientSocket.getOutputStream().flush();
+                        }
+                    }
+                    read = serverSocket.getInputStream().read(dataBuffer);
+                }
+            }
+            catch (IOException e){
+                e.printStackTrace();
+            }
+
+            closeResources(serverSocket, serverReader, serverWriter, clientWriter);
+
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    class ClientToServerHttpsTransmitter implements Runnable{
+    void closeResources(Socket serverSocket, BufferedReader serverReader, BufferedWriter serverWriter, BufferedWriter clientWriter){
+        if(serverSocket != null){
+            serverSocket.close();
+        }
+        if(serverReader != null){
+            serverReader.close();
+        }
+        if(serverWriter != null){
+            serverWriter.close();
+        }
+        if(clientWriter != null){
+            clientWriter.close();
+        }
+    }
+
+    class ClientToServerHttpsTransmitter implements Runnable {
 
         InputStream clientStream;
         OutputStream serverStream;
 
-        public ClientToServerHttpsTransmitter(Socket clientSocket, Socket serverSocket){
+        public ClientToServerHttpsTransmitter(Socket clientSocket, Socket serverSocket) {
             this.clientStream = clientSocket.getInputStream();
             this.serverStream = clientSocket.getOutputStream();
+        }
+
+        /*
+        - Create a data buffer
+        - While there is data being sent by the client, add to buffer
+        - When data is not available from the client, use the time to flush to the server
+        */
+        @Override
+        public void run() {
+            try {
+                byte[] dataBuffer = new byte[4096];
+                int read = clientStream.read(dataBuffer);
+                while(read >= 0){
+                    if(read > 0){
+                        serverStream.write(dataBuffer, 0, read);
+                        if(clientStream.available() < 1){
+                            serverStream.flush();
+                        }
+                    }
+                    read = clientStream.read(dataBuffer);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 }
