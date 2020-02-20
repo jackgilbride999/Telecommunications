@@ -1,6 +1,3 @@
-// Usage javac ProxyMultiThread.java
-// Usage java ProxyMultithread 192.168.1.10 8080 9999
-
 /*
 # Web Proxy Server
 The objective of the exercise is to implement a Web Proxy Server. 
