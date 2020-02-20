@@ -2,7 +2,6 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
-
 class ThreadProxy implements Runnable {
 
     // Socket connected to client passed by Proxy server
@@ -11,6 +10,8 @@ class ThreadProxy implements Runnable {
     private BufferedReader clientReader;
 
     private BufferedWriter clientWriter;
+
+    private Thread clientToServerHttpsTransmitterThread;
 
     ThreadProxy(Socket clientSocket) {
         try {
@@ -114,9 +115,8 @@ class ThreadProxy implements Runnable {
             }
 
             /*
-             * - Get the IP of the server 
-             * - Open a socket to the server 
-             * - Let the client know that connection was established
+             * - Get the IP of the server - Open a socket to the server - Let the client
+             * know that connection was established
              */
             InetAddress serverAddress = InetAddress.getByName(requestUrl);
             Socket serverSocket = new Socket(serverAddress, requestPort);
@@ -131,30 +131,29 @@ class ThreadProxy implements Runnable {
             // Handle the transmission from Client to Server in a seperate thread
             ClientToServerHttpsTransmitter clientToServerHttpsTransmitter = new ClientToServerHttpsTransmitter(
                     clientSocket, serverSocket);
-            clientToServerHttpsTransmitter = new Thread(clientToServerHttpsTransmitter);
-            clientToServerHttpsTransmitter.start();
+            clientToServerHttpsTransmitterThread = new Thread(clientToServerHttpsTransmitter);
+            clientToServerHttpsTransmitterThread.start();
 
             // Handle the transmission from Server to Client in this thread
             /*
-            - Create a data buffer
-            - While there is data being sent by the server, add to buffer
-            - When data is not available from the server, use the time to flush to the client
-            */
-            try{
+             * - Create a data buffer - While there is data being sent by the server, add to
+             * buffer - When data is not available from the server, use the time to flush to
+             * the client
+             */
+            try {
                 byte[] dataBuffer = new byte[4096];
                 int read;
                 read = serverSocket.getInputStream().read(dataBuffer);
-                while(read >= 0){
-                    if(read > 0){
+                while (read >= 0) {
+                    if (read > 0) {
                         clientSocket.getOutputStream().write(dataBuffer, 0, read);
-                        if(serverSocket.getInputStream().available() < 1){
+                        if (serverSocket.getInputStream().available() < 1) {
                             clientSocket.getOutputStream().flush();
                         }
                     }
                     read = serverSocket.getInputStream().read(dataBuffer);
                 }
-            }
-            catch (IOException e){
+            } catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -165,18 +164,23 @@ class ThreadProxy implements Runnable {
         }
     }
 
-    void closeResources(Socket serverSocket, BufferedReader serverReader, BufferedWriter serverWriter, BufferedWriter clientWriter){
-        if(serverSocket != null){
+    void closeResources(Socket serverSocket, BufferedReader serverReader, BufferedWriter serverWriter,
+            BufferedWriter clientWriter) {
+        try{
+        if (serverSocket != null) {
             serverSocket.close();
         }
-        if(serverReader != null){
+        if (serverReader != null) {
             serverReader.close();
         }
-        if(serverWriter != null){
+        if (serverWriter != null) {
             serverWriter.close();
         }
-        if(clientWriter != null){
+        if (clientWriter != null) {
             clientWriter.close();
+        }}
+        catch(IOException e){
+            e.printStackTrace();
         }
     }
 
@@ -186,24 +190,28 @@ class ThreadProxy implements Runnable {
         OutputStream serverStream;
 
         public ClientToServerHttpsTransmitter(Socket clientSocket, Socket serverSocket) {
-            this.clientStream = clientSocket.getInputStream();
-            this.serverStream = clientSocket.getOutputStream();
+            try {
+                this.clientStream = clientSocket.getInputStream();
+                this.serverStream = clientSocket.getOutputStream();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         /*
-        - Create a data buffer
-        - While there is data being sent by the client, add to buffer
-        - When data is not available from the client, use the time to flush to the server
-        */
+         * - Create a data buffer - While there is data being sent by the client, add to
+         * buffer - When data is not available from the client, use the time to flush to
+         * the server
+         */
         @Override
         public void run() {
             try {
                 byte[] dataBuffer = new byte[4096];
                 int read = clientStream.read(dataBuffer);
-                while(read >= 0){
-                    if(read > 0){
+                while (read >= 0) {
+                    if (read > 0) {
                         serverStream.write(dataBuffer, 0, read);
-                        if(clientStream.available() < 1){
+                        if (clientStream.available() < 1) {
                             serverStream.flush();
                         }
                     }
