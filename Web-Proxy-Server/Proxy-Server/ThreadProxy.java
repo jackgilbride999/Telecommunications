@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.util.ArrayList;
 
 class ThreadProxy implements Runnable {
@@ -42,6 +44,8 @@ class ThreadProxy implements Runnable {
             if (requestType.equals("CONNECT")) {
                 System.out.println("CONNECT request for " + requestUrl);
                 handleHTTPSRequest(requestUrl);
+            } else if (requestType.equals("GET")) {
+                handleGetRequest(requestUrl);
             }
 
             Socket client = null, webServer = null;
@@ -100,6 +104,96 @@ class ThreadProxy implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void handleGetRequest(String requestUrl) {
+        try {
+            String fileName = requestUrl.substring(requestUrl.indexOf('.') + 1, requestUrl.lastIndexOf("."));
+            String extension = requestUrl.substring(requestUrl.lastIndexOf("."), requestUrl.length());
+
+            fileName = fileName.replace("/", "__");
+            fileName = fileName.replace('.', '_');
+
+            if (extension.contains("/")) {
+                extension = extension.replace("/", "__");
+                extension = extension.replace('.', '_');
+                extension += ".html";
+            }
+
+            fileName = fileName + extension;
+
+            boolean caching = true;
+            File file = null;
+            BufferedWriter fileBW = null;
+
+            try {
+                file = new File("cache/" + fileName);
+
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+
+                fileBW = new BufferedWriter(new FileWriter(file));
+            } catch (IOException e) {
+                e.printStackTrace();
+                caching = false;
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+            }
+
+            if (extension.toLowerCase().contains(".jpg") || extension.toLowerCase().contains(".jpeg")
+                    || extension.toLowerCase().contains(".png") || extension.toLowerCase().contains(".gif")) {
+                BufferedImage image = ImageIO.read(new URL(requestUrl));
+                if (image != null) {
+                    ImageIO.write(image, extension.substring(1), file);
+                    String response = "HTTP/1.0 200 OK\nProxy-agent: ProxyServer/1.0\n\r\n";
+                    clientWriter.write(response);
+                    clientWriter.flush();
+                    ImageIO.write(image, extension.substring(1), clientSocket.getOutputStream());
+                } else {
+                    String error = "HTTP/1.0 404 NOT FOUND\nProxy-agent: ProxyServer/1.0\n\r\n";
+                    clientWriter.write(error);
+                    clientWriter.flush();
+                    return;
+                }
+            }
+
+            else {
+                HttpURLConnection serverConnection = (HttpURLConnection) (new URL(requestUrl).openConnection());
+                serverConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                serverConnection.setRequestProperty("Content-Language", "en-US");
+                serverConnection.setUseCaches(false);
+                serverConnection.setDoOutput(true);
+
+                BufferedReader serverBR = new BufferedReader(new InputStreamReader(serverConnection.getInputStream()));
+
+                String response = "HTTP/1.0 200 OK\nProxy-agent: ProxyServer/1.0\n\r\n";
+                clientWriter.write(response);
+
+                while ((response = serverBR.readLine()) != null) {
+                    clientWriter.write(response);
+                    if (caching) {
+                        fileBW.write(response);
+                    }
+                }
+                fileBW.flush();
+
+                if (serverBR != null) {
+                    serverBR.close();
+                }
+
+            }
+
+            if (fileBW != null) {
+                fileBW.close();
+            }
+            if (clientWriter != null) {
+                clientWriter.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     private void handleHTTPSRequest(String requestUrl) {
@@ -166,20 +260,20 @@ class ThreadProxy implements Runnable {
 
     void closeResources(Socket serverSocket, BufferedReader serverReader, BufferedWriter serverWriter,
             BufferedWriter clientWriter) {
-        try{
-        if (serverSocket != null) {
-            serverSocket.close();
-        }
-        if (serverReader != null) {
-            serverReader.close();
-        }
-        if (serverWriter != null) {
-            serverWriter.close();
-        }
-        if (clientWriter != null) {
-            clientWriter.close();
-        }}
-        catch(IOException e){
+        try {
+            if (serverSocket != null) {
+                serverSocket.close();
+            }
+            if (serverReader != null) {
+                serverReader.close();
+            }
+            if (serverWriter != null) {
+                serverWriter.close();
+            }
+            if (clientWriter != null) {
+                clientWriter.close();
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
