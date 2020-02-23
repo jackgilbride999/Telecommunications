@@ -8,11 +8,8 @@ class ThreadProxy implements Runnable {
 
     // Socket connected to client passed by Proxy server
     private Socket clientSocket;
-
     private BufferedReader clientReader;
-
     private BufferedWriter clientWriter;
-
     private Thread clientToServerHttpsTransmitterThread;
 
     ThreadProxy(Socket clientSocket) {
@@ -29,9 +26,6 @@ class ThreadProxy implements Runnable {
     @Override
     public void run() {
         try {
-            final InputStream inFromClient = clientSocket.getInputStream();
-            final OutputStream outToClient = clientSocket.getOutputStream();
-
             /*
              * - Get request from client - Parse out the request type - Parse out URL: the
              * data between the first and second spaces
@@ -40,6 +34,10 @@ class ThreadProxy implements Runnable {
             String requestType = requestLine.substring(0, requestLine.indexOf(' '));
             String requestUrl = requestLine.substring(requestLine.indexOf(' ') + 1);
             requestUrl = requestUrl.substring(0, requestUrl.indexOf(' '));
+            if(!requestUrl.startsWith("http")){
+                requestUrl = "http://" + requestUrl;
+            }
+
             if (requestType.equals("CONNECT")) {
                 System.out.println("CONNECT request for " + requestUrl);
                 handleHTTPSRequest(requestUrl);

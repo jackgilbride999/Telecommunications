@@ -43,6 +43,23 @@ public class ProxyMultiThread implements Runnable {
     private static final String HELP = "HELP";
 
     /*
+        Static methods.
+    */
+    public static File getFromCache(String pageUrl){
+        return proxyCache.get(pageUrl);
+    }
+
+    public static void addToCache(String pageUrl, File file){
+        proxyCache.put(pageUrl, file);
+    }
+
+    public static boolean isBlocked(String pageUrl){
+        if(blockedList.contains(pageUrl)){
+            return true;
+        }
+        return false;
+    }
+    /*
      * Create an instance of the ProxyMultiThread and listen for connections
      */
     public static void main(String[] args) {
