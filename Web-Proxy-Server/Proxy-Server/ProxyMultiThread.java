@@ -19,84 +19,76 @@ import java.util.*;
 public class ProxyMultiThread implements Runnable {
 
 	// Constants for user input
-	private static final String BLOCK = "BLOCK";
 	private static final String BLOCKED = "BLOCKED";
 	private static final String CACHED = "CACHED";
 	private static final String CLOSE = "CLOSE";
 	private static final String HELP = "HELP";
 
+	// Static local variables. Data structures to keep track of cached sites, blocked sites and threads.
+	private static HashMap<String, File> cachedMap;
+	private static HashMap<String, String> blockedMap;
+	private static ArrayList<Thread> threadList;
+
 	/*
 	 * Static methods.
 	 */
+	// Get the cached page from the cache hashmap
 	public static File getCachedPage(String url) {
-		return cache.get(url);
+		return cachedMap.get(url);
 	}
 
+	// Add a page to the cache hashmap
 	public static void addCachedPage(String urlString, File fileToCache) {
-		cache.put(urlString, fileToCache);
+		cachedMap.put(urlString, fileToCache);
 	}
 
+	// Go through the blocked list to check whether the site is blocked
 	public static boolean isBlocked(String url) {
-		if (blockedSites.get(url) != null) {
-			return true;
-		} else {
-			return false;
+		for (String key : blockedMap.keySet()) {
+			if (url.contains(key)) {
+				return true;
+			}
 		}
+		return false;
 	}
 
+	/*
+	 * main method. Create the proxy and start listening for a client connection.
+	 */
 	public static void main(String[] args) {
 		ProxyMultiThread proxy = new ProxyMultiThread();
 		proxy.listen();
 	}
 
+	/*
+	 * Local variables. The port number for the browser to listen on, a server
+	 * socket to listen to this port, a boolean to declare whether the proxy is
+	 * running, and a seperate thread for the management console.
+	 */
+	private int browserPort;
 	private ServerSocket browserListener;
 	private volatile boolean running = true;
-	static HashMap<String, File> cache;
-	static HashMap<String, String> blockedSites;
-	static ArrayList<Thread> servicingThreads;
-	int browserPort;
+	private Thread managementConsole;
 
+	/*
+	 * Constructor for the Proxy.
+	 */
 	public ProxyMultiThread() {
-		cache = new HashMap<>();
-		blockedSites = new HashMap<>();
-		servicingThreads = new ArrayList<>();
+		// initialise the data structures and client port number
+		cachedMap = new HashMap<>();
+		blockedMap = new HashMap<>();
+		threadList = new ArrayList<>();
 		browserPort = 9999;
-
-		new Thread(this).start();
-
-		try {
-			File cachedSites = new File("cachedSites.txt");
-			if (!cachedSites.exists()) {
-				System.out.println("No cached sites found - creating new file");
-				cachedSites.createNewFile();
-			} else {
-				FileInputStream fileInputStream = new FileInputStream(cachedSites);
-				ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-				cache = (HashMap<String, File>) objectInputStream.readObject();
-				fileInputStream.close();
-				objectInputStream.close();
-			}
-
-			File blockedSitesTxtFile = new File("blockedSites.txt");
-			if (!blockedSitesTxtFile.exists()) {
-				System.out.println("No blocked sites found - creating new file");
-				blockedSitesTxtFile.createNewFile();
-			} else {
-				FileInputStream fileInputStream = new FileInputStream(blockedSitesTxtFile);
-				ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-				blockedSites = (HashMap<String, String>) objectInputStream.readObject();
-				fileInputStream.close();
-				objectInputStream.close();
-			}
-		} catch (IOException e) {
-			System.out.println("Error loading previously cached sites file");
-		} catch (ClassNotFoundException e) {
-			System.out.println("Class not found loading in preivously cached sites file");
-		}
-
+		// Spin off a seperate thread to handle the management console
+		managementConsole = new Thread(this);
+		managementConsole.start();
+		// Initalize the maps of cached site and blocked sites
+		initializeCachedSites();
+		initializeBlockedSites();
+		// Start listening to the browser
 		try {
 			browserListener = new ServerSocket(browserPort);
-			System.out.println("Waiting for client on port " + browserListener.getLocalPort() + "..");
+			System.out.println("Waiting for client on port " + browserListener.getLocalPort());
 			running = true;
 		} catch (SocketException e) {
 			System.out.println("Socket Exception when connecting to client");
@@ -111,12 +103,13 @@ public class ProxyMultiThread implements Runnable {
 	 * Non static methods.
 	 */
 
+	// Spin off a new thread for every new connection that the browser requests
 	public void listen() {
 		while (running) {
 			try {
 				Socket socket = browserListener.accept();
-				Thread thread = new Thread(new ThreadProxy(socket));
-				servicingThreads.add(thread);
+				Thread thread = new Thread(new ConnectionThread(socket));
+				threadList.add(thread);
 				thread.start();
 			} catch (SocketException e) {
 				System.out.println("Server closed");
@@ -126,6 +119,52 @@ public class ProxyMultiThread implements Runnable {
 		}
 	}
 
+	// Initalize the data structure for the cached sites by reading from the cache
+	// file. If a cache file does not exist, create one
+	private void initializeCachedSites() {
+		try {
+			File cachedSites = new File("cachedSites.txt");
+			if (!cachedSites.exists()) {
+				System.out.println("Creating new cache file");
+				cachedSites.createNewFile();
+			} else {
+				FileInputStream cachedFileStream = new FileInputStream(cachedSites);
+				ObjectInputStream cachedObjectStream = new ObjectInputStream(cachedFileStream);
+				cachedMap = (HashMap<String, File>) cachedObjectStream.readObject();
+				cachedFileStream.close();
+				cachedObjectStream.close();
+			}
+		} catch (IOException e) {
+			System.out.println("Error loading previously cached sites file");
+		} catch (ClassNotFoundException e) {
+			System.out.println("Class not found loading in preivously cached sites file");
+		}
+	}
+
+	// Initalize the data structure for the blocked sites by reading from the
+	// blocked file. If a blocked file does not exist, create one
+	private void initializeBlockedSites() {
+		try {
+			File blockedSitesTxtFile = new File("blockedSites.txt");
+			if (!blockedSitesTxtFile.exists()) {
+				System.out.println("No blocked sites found - creating new file");
+				blockedSitesTxtFile.createNewFile();
+			} else {
+				FileInputStream blockedFileStream = new FileInputStream(blockedSitesTxtFile);
+				ObjectInputStream blockedObjectStream = new ObjectInputStream(blockedFileStream);
+				blockedMap = (HashMap<String, String>) blockedObjectStream.readObject();
+				blockedFileStream.close();
+				blockedObjectStream.close();
+			}
+		} catch (IOException e) {
+			System.out.println("Error loading previously cached sites file");
+		} catch (ClassNotFoundException e) {
+			System.out.println("Class not found loading in preivously cached sites file");
+		}
+	}
+
+	// Close the server. Write back to the cached and blocked files. Join the
+	// threads.
 	private void closeServer() {
 		System.out.println("Closing server");
 		running = false;
@@ -133,19 +172,19 @@ public class ProxyMultiThread implements Runnable {
 			FileOutputStream cachedFileStream = new FileOutputStream("cachedSites.txt");
 			ObjectOutputStream cachedObjectStream = new ObjectOutputStream(cachedFileStream);
 
-			cachedObjectStream.writeObject(cache);
+			cachedObjectStream.writeObject(cachedMap);
 			cachedObjectStream.close();
 			cachedFileStream.close();
 			System.out.println("Cached sites written");
 
 			FileOutputStream blockedFileStream = new FileOutputStream("blockedSites.txt");
 			ObjectOutputStream blockedObjectStream = new ObjectOutputStream(blockedFileStream);
-			blockedObjectStream.writeObject(blockedSites);
+			blockedObjectStream.writeObject(blockedMap);
 			blockedObjectStream.close();
 			blockedFileStream.close();
 			System.out.println("Blocked site list saved");
 			try {
-				for (Thread thread : servicingThreads) {
+				for (Thread thread : threadList) {
 					if (thread.isAlive()) {
 						thread.join();
 					}
@@ -164,29 +203,30 @@ public class ProxyMultiThread implements Runnable {
 			System.out.println("Exception closing proxy's server socket");
 			e.printStackTrace();
 		}
-
 	}
 
+	// The functionality of the management console. Watch System.in and look out for
+	// commands. If a defined command is not entered, assume that the input is a URL
+	// to be blocked and block it.
 	@Override
 	public void run() {
 		Scanner terminalScanner = new Scanner(System.in);
 		String userInput;
 		while (running) {
-			System.out.println(
-					"Please enter a command. Enter HELP to see the list of commands.");
+			System.out.println("Please enter a command. Enter HELP to see the list of commands.");
 			userInput = terminalScanner.nextLine().toUpperCase();
 
 			switch (userInput) {
 				case BLOCKED:
 					System.out.println("\nCurrently Blocked Sites");
-					for (String key : blockedSites.keySet()) {
+					for (String key : blockedMap.keySet()) {
 						System.out.println(key);
 					}
 					System.out.println();
 					break;
 				case CACHED:
 					System.out.println("\nCurrently Cached Sites");
-					for (String key : cache.keySet()) {
+					for (String key : cachedMap.keySet()) {
 						System.out.println(key);
 					}
 					System.out.println();
@@ -203,7 +243,7 @@ public class ProxyMultiThread implements Runnable {
 					System.out.println("Otherwise, enter a URL to add it to the blocked list.");
 					break;
 				default:
-					blockedSites.put(userInput.toLowerCase(), userInput.toLowerCase());
+					blockedMap.put(userInput.toLowerCase(), userInput.toLowerCase());
 					System.out.println("\n" + userInput + " blocked successfully \n");
 					break;
 			}

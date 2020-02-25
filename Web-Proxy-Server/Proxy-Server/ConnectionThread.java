@@ -3,19 +3,17 @@ import javax.imageio.ImageIO;
 import java.io.*;
 import java.net.*;
 
-public class ThreadProxy implements Runnable {
+public class ConnectionThread implements Runnable {
 
 	/*
-	 * Variables for this thread. browserSocket: the socket connected to the client
-	 * passed by the Proxy Server clientReader: a buffered reader to read from the
-	 * client clientWriter: a buffered writer to write to the client
-	 * clientToServerHttpsTransmitterThread: a seperate thread to allow transmission
-	 * from client to server while this thread is transmitting from server to client
+	 * Variables for this thread. A socket to connect to the client (browser), a
+	 * reader and writer to the client, and a seperate thread to handle HTTPS
+	 * communication from the client to the server.
 	 */
 	private Socket browserSocket;
 	private BufferedReader clientReader;
 	private BufferedWriter clientWriter;
-	private Thread clientToServerHttpsTransmitterThread;
+	private Thread clientToServerHttpsThread;
 
 	/*
 	 * Constants for this class. To identify connection types and file types.
@@ -27,7 +25,10 @@ public class ThreadProxy implements Runnable {
 	private static final String PNG = ".png";
 	private static final String GIF = ".gif";
 
-	public ThreadProxy(Socket browserSocket) {
+	/*
+	 * Constructor for this thread. Initalize the local variables.
+	 */
+	public ConnectionThread(Socket browserSocket) {
 		this.browserSocket = browserSocket;
 		try {
 			this.browserSocket.setSoTimeout(2000);
@@ -38,6 +39,11 @@ public class ThreadProxy implements Runnable {
 		}
 	}
 
+	/*
+	 * Take the request from the client. If the site is blocked, do not fulfil the
+	 * request. Identify whether it is a HTTP or HTTPS request. Handle by passing
+	 * off to the appropriate method.
+	 */
 	@Override
 	public void run() {
 		String requestString, requestType, requestUrl;
@@ -66,15 +72,17 @@ public class ThreadProxy implements Runnable {
 				File file = ProxyMultiThread.getCachedPage(requestUrl);
 				if (file == null) {
 					System.out.println("HTTP request for : " + requestUrl + ". No cached page found.");
-					sendNonCachedToClient(requestUrl);
+					fulfilNonCachedRequest(requestUrl);
 				} else {
 					System.out.println("HTTP request for : " + requestUrl + ". Cached page found.");
-					sendCachedPageToClient(file);
+					fulfilCachedRequest(file);
 				}
 				break;
 		}
 	}
 
+	// Parse a CONNECT or GET request and return an array containing the URL and
+	// port number
 	private String[] splitRequest(String requestString) {
 		String requestType, requestUrl;
 		int requestSeparatorIndex;
@@ -88,7 +96,8 @@ public class ThreadProxy implements Runnable {
 		return new String[] { requestType, requestUrl };
 	}
 
-	private void sendCachedPageToClient(File cachedFile) {
+	// Fetch a page from the cache for the client
+	private void fulfilCachedRequest(File cachedFile) {
 		try {
 			String fileExtension = cachedFile.getName().substring(cachedFile.getName().lastIndexOf('.'));
 			if (isImage(fileExtension)) {
@@ -128,18 +137,15 @@ public class ThreadProxy implements Runnable {
 		}
 	}
 
-	private void sendNonCachedToClient(String requestUrl) {
+	// Set up a server connection, fetch the appropriate content. Return the content
+	// to the client and also add it to the cache.
+	private void fulfilNonCachedRequest(String requestUrl) {
 		try {
-
 			int fileExtensionIndex = requestUrl.lastIndexOf(".");
 			String fileExtension;
-
 			fileExtension = requestUrl.substring(fileExtensionIndex, requestUrl.length());
-
 			String fileName = requestUrl.substring(0, fileExtensionIndex);
-
 			fileName = fileName.substring(fileName.indexOf('.') + 1);
-
 			fileName = fileName.replace("/", "__");
 			fileName = fileName.replace('.', '_');
 
@@ -151,22 +157,21 @@ public class ThreadProxy implements Runnable {
 			fileName = fileName + fileExtension;
 			boolean caching = true;
 			File fileToCache = null;
-			BufferedWriter fileToCacheBW = null;
+			BufferedWriter cacheWriter = null;
 
 			try {
-				fileToCache = new File("cached/" + fileName);
+				fileToCache = new File("cache/" + fileName);
 				if (!fileToCache.exists()) {
 					fileToCache.createNewFile();
 				}
-				fileToCacheBW = new BufferedWriter(new FileWriter(fileToCache));
+				cacheWriter = new BufferedWriter(new FileWriter(fileToCache));
 			} catch (IOException e) {
 				System.out.println("Error trying to cache " + fileName);
 				caching = false;
 			} catch (NullPointerException e) {
 				System.out.println("Null pointer opening file " + fileName);
 			}
-			if ((fileExtension.contains(PNG)) || fileExtension.contains(JPG) || fileExtension.contains(JPEG)
-					|| fileExtension.contains(GIF)) {
+			if (isImage(fileExtension)) {
 				URL remoteURL = new URL(requestUrl);
 				BufferedImage image = ImageIO.read(remoteURL);
 
@@ -175,11 +180,9 @@ public class ThreadProxy implements Runnable {
 					String line = getResponse(200, false);
 					clientWriter.write(line);
 					clientWriter.flush();
-
 					ImageIO.write(image, fileExtension.substring(1), browserSocket.getOutputStream());
 
 				} else {
-					System.out.println("Sending 404 to client as image wasn't received from server" + fileName);
 					String error = getResponse(404, false);
 					clientWriter.write(error);
 					clientWriter.flush();
@@ -187,19 +190,19 @@ public class ThreadProxy implements Runnable {
 				}
 			} else {
 				URL remoteURL = new URL(requestUrl);
-				HttpURLConnection proxyToServerCon = (HttpURLConnection) remoteURL.openConnection();
-				proxyToServerCon.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-				proxyToServerCon.setRequestProperty("Content-Language", "en-US");
-				proxyToServerCon.setUseCaches(false);
-				proxyToServerCon.setDoOutput(true);
+				HttpURLConnection serverConnection = (HttpURLConnection) remoteURL.openConnection();
+				serverConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+				serverConnection.setRequestProperty("Content-Language", "en-US");
+				serverConnection.setUseCaches(false);
+				serverConnection.setDoOutput(true);
 				BufferedReader proxyToServerBR = new BufferedReader(
-						new InputStreamReader(proxyToServerCon.getInputStream()));
-				String line = getResponse(404, false);
+						new InputStreamReader(serverConnection.getInputStream()));
+				String line = getResponse(200, false);
 				clientWriter.write(line);
 				while ((line = proxyToServerBR.readLine()) != null) {
 					clientWriter.write(line);
 					if (caching) {
-						fileToCacheBW.write(line);
+						cacheWriter.write(line);
 					}
 				}
 				clientWriter.flush();
@@ -209,60 +212,62 @@ public class ThreadProxy implements Runnable {
 			}
 
 			if (caching) {
-				fileToCacheBW.flush();
+				cacheWriter.flush();
 				ProxyMultiThread.addCachedPage(requestUrl, fileToCache);
 			}
-
-			if (fileToCacheBW != null) {
-				fileToCacheBW.close();
+			if (cacheWriter != null) {
+				cacheWriter.close();
 			}
-
 			if (clientWriter != null) {
 				clientWriter.close();
 			}
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			System.out.println("Error sending non cached page to client");
 		}
 	}
 
+	// Handle a HTTPS CONNECT request
 	private void handleHTTPSRequest(String requestUrl) {
 		String url = requestUrl.substring(7);
 		String pieces[] = url.split(":");
 		url = pieces[0];
-		int port = Integer.valueOf(pieces[1]);
+		int serverPort = Integer.valueOf(pieces[1]);
 
 		try {
+			// Only the first line of the CONNECT request has been processed. Clear the
+			// rest.
 			for (int i = 0; i < 5; i++) {
 				clientReader.readLine();
 			}
-
-			InetAddress address = InetAddress.getByName(url);
-
-			Socket proxyToServerSocket = new Socket(address, port);
-			proxyToServerSocket.setSoTimeout(5000);
+			// Create a new connection to the server
+			InetAddress serverAddress = InetAddress.getByName(url);
+			Socket serverSocket = new Socket(serverAddress, serverPort);
+			serverSocket.setSoTimeout(5000);
 
 			String line = getResponse(200, true);
 			clientWriter.write(line);
 			clientWriter.flush();
 
-			BufferedWriter proxyToServerBW = new BufferedWriter(
-					new OutputStreamWriter(proxyToServerSocket.getOutputStream()));
-			BufferedReader proxyToServerBR = new BufferedReader(
-					new InputStreamReader(proxyToServerSocket.getInputStream()));
-			ClientToServerHttpsTransmitter clientToServerHttps = new ClientToServerHttpsTransmitter(
-					browserSocket.getInputStream(), proxyToServerSocket.getOutputStream());
+			// Create the IO tools to read from and write to the server
+			BufferedWriter serverWriter = new BufferedWriter(new OutputStreamWriter(serverSocket.getOutputStream()));
+			BufferedReader serverReader = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
 
-			clientToServerHttpsTransmitterThread = new Thread(clientToServerHttps);
-			clientToServerHttpsTransmitterThread.start();
+			// Spin off a seperate thread to send from the client to the server. This thread
+			// will handle communication from the server to the client.
+			ClientToServerHttpsTransmitter clientToServerHttps = new ClientToServerHttpsTransmitter(
+					browserSocket.getInputStream(), serverSocket.getOutputStream());
+			clientToServerHttpsThread = new Thread(clientToServerHttps);
+			clientToServerHttpsThread.start();
+
+			// Handle communication from the server to the client
 			try {
 				byte[] buffer = new byte[4096];
 				int read;
 				do {
-					read = proxyToServerSocket.getInputStream().read(buffer);
+					read = serverSocket.getInputStream().read(buffer);
 					if (read > 0) {
 						browserSocket.getOutputStream().write(buffer, 0, read);
-						if (proxyToServerSocket.getInputStream().available() < 1) {
+						if (serverSocket.getInputStream().available() < 1) {
 							browserSocket.getOutputStream().flush();
 						}
 					}
@@ -273,21 +278,8 @@ public class ThreadProxy implements Runnable {
 				System.out.println("Error handling HTTPs connection");
 			}
 
-			if (proxyToServerSocket != null) {
-				proxyToServerSocket.close();
-			}
-
-			if (proxyToServerBR != null) {
-				proxyToServerBR.close();
-			}
-
-			if (proxyToServerBW != null) {
-				proxyToServerBW.close();
-			}
-
-			if (clientWriter != null) {
-				clientWriter.close();
-			}
+			// Close the resources
+			closeResources(serverSocket, serverReader, serverWriter, clientWriter);
 
 		} catch (SocketTimeoutException e) {
 			String line = getResponse(504, false);
@@ -301,6 +293,7 @@ public class ThreadProxy implements Runnable {
 		}
 	}
 
+	// Respond to the browser with a 403 Error Code
 	private void blockedSiteRequested() {
 		try {
 			BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(browserSocket.getOutputStream()));
@@ -312,11 +305,15 @@ public class ThreadProxy implements Runnable {
 		}
 	}
 
+	// Check whether the file extension is that of an image
 	private boolean isImage(String fileExtension) {
 		return fileExtension.contains(PNG) || fileExtension.contains(JPG) || fileExtension.contains(JPEG)
 				|| fileExtension.contains(GIF);
 	}
 
+	// Return certain response strings based on the error code passed. There are two
+	// cases for 200, 'OK' and 'Connection established', in which case check the
+	// boolean.
 	private String getResponse(int code, boolean connectionEstablished) {
 		String response = "";
 		switch (code) {
@@ -342,14 +339,34 @@ public class ThreadProxy implements Runnable {
 		return response;
 	}
 
+	// Close the passed resources
+	private void closeResources(Socket serverSocket, BufferedReader serverReader, BufferedWriter serverWriter,
+			BufferedWriter clientWriter) throws IOException {
+		if (serverSocket != null) {
+			serverSocket.close();
+		}
+		if (serverReader != null) {
+			serverReader.close();
+		}
+		if (serverWriter != null) {
+			serverWriter.close();
+		}
+		if (clientWriter != null) {
+			clientWriter.close();
+		}
+	}
+
+	// Seperate class to handle HTTPS transmission from the client to the server. In
+	// practise it is spun off as a seperate thread to run alongside transmission
+	// from the server to the client.
 	class ClientToServerHttpsTransmitter implements Runnable {
 
-		InputStream proxyToClientIS;
-		OutputStream proxyToServerOS;
+		InputStream clientStream;
+		OutputStream serverStream;
 
 		public ClientToServerHttpsTransmitter(InputStream proxyToClientIS, OutputStream proxyToServerOS) {
-			this.proxyToClientIS = proxyToClientIS;
-			this.proxyToServerOS = proxyToServerOS;
+			this.clientStream = proxyToClientIS;
+			this.serverStream = proxyToServerOS;
 		}
 
 		@Override
@@ -358,11 +375,11 @@ public class ThreadProxy implements Runnable {
 				byte[] buffer = new byte[4096];
 				int read;
 				do {
-					read = proxyToClientIS.read(buffer);
+					read = clientStream.read(buffer);
 					if (read > 0) {
-						proxyToServerOS.write(buffer, 0, read);
-						if (proxyToClientIS.available() < 1) {
-							proxyToServerOS.flush();
+						serverStream.write(buffer, 0, read);
+						if (clientStream.available() < 1) {
+							serverStream.flush();
 						}
 					}
 				} while (read >= 0);
