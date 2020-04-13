@@ -3,15 +3,15 @@ import java.io.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.bson.Document;
+
+import com.mongodb.BasicDBObject;
 import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.MongoClientSettings;
-
 
 /*
  * 	The aim of this project is to develop a secure social media application for Facebook,
@@ -27,7 +27,7 @@ import com.mongodb.MongoClientSettings;
 
 public class SecureSocialApp {
 	public static void main(String[] args) {
-		Logger mongoLogger = Logger.getLogger( "org.mongodb.driver" );
+		Logger mongoLogger = Logger.getLogger("org.mongodb.driver");
 		mongoLogger.setLevel(Level.SEVERE); // e.g. or Log.WARNING, etc.
 		System.out.println("Welcome to Secure Social.");
 		Scanner inputScanner = new Scanner(System.in);
@@ -36,26 +36,36 @@ public class SecureSocialApp {
 		String readWritePassword = passwords[1];
 		MongoClient readWriteClient = createClient("readwrite", readWritePassword);
 		MongoDatabase database = readWriteClient.getDatabase("Secure-Social");
-		createUser(inputScanner, database);
+		addToGroup(inputScanner, database);
 	}
 
 	private static void createUser(Scanner inputScanner, MongoDatabase database) {
 		MongoCollection<Document> collection = database.getCollection("Users");
-		System.out.println("Please enter a username of a user to create: ");
+		System.out.println("Please enter the username of the user to create: ");
 		String userName = inputScanner.nextLine();
-		System.out.println("Please enter a password of a user to create: ");
+		System.out.println("Please enter the password of the user to create: ");
 		String userPassword = inputScanner.nextLine();
 		Document document = new Document("username", userName).append("password", userPassword);
 		collection.insertOne(document);
 		System.out.println("User created successfully.");
 	}
 
-	private static void createGroup() {
-
+	private static void createGroup(Scanner inputScanner, MongoDatabase database) {
+		MongoCollection<Document> collection = database.getCollection("Groups");
+		System.out.println("Please enter the name of the group to create: ");
+		String groupName = inputScanner.nextLine();
+		Document document = new Document("groupname", groupName).append("users", Arrays.asList());
+		collection.insertOne(document);
+		System.out.println("Group created successfully");
 	}
 
-	private static void addToGroup() {
-
+	private static void addToGroup(Scanner inputScanner, MongoDatabase database) {
+		MongoCollection<Document> collection = database.getCollection("Groups");
+		System.out.println("Please enter the name of the group to add a member to: ");
+		String groupName = inputScanner.nextLine();
+	    BasicDBObject whereQuery = new BasicDBObject();
+	    whereQuery.put("groupname", groupName);
+	    System.out.println(collection.find(whereQuery).first());
 	}
 
 	/*
