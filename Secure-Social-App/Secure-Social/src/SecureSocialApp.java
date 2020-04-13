@@ -34,47 +34,9 @@ public class SecureSocialApp {
 		String[] passwords = getPasswords();
 		String readOnlyPassword = passwords[0];
 		String readWritePassword = passwords[1];
-		MongoClient readWriteClient = createClient("readwrite", readWritePassword);
-		MongoDatabase database = readWriteClient.getDatabase("Secure-Social");
-		addToGroup(inputScanner, database);
+		DBClient mongo = new DBClient("readwrite", readWritePassword);
 	}
 
-	private static void createUser(Scanner inputScanner, MongoDatabase database) {
-		MongoCollection<Document> collection = database.getCollection("Users");
-		System.out.println("Please enter the username of the user to create: ");
-		String userName = inputScanner.nextLine();
-		System.out.println("Please enter the password of the user to create: ");
-		String userPassword = inputScanner.nextLine();
-		Document document = new Document("username", userName).append("password", userPassword);
-		collection.insertOne(document);
-		System.out.println("User created successfully.");
-	}
-
-	private static void createGroup(Scanner inputScanner, MongoDatabase database) {
-		MongoCollection<Document> collection = database.getCollection("Groups");
-		System.out.println("Please enter the name of the group to create: ");
-		String groupName = inputScanner.nextLine();
-		Document document = new Document("groupname", groupName).append("users", Arrays.asList());
-		collection.insertOne(document);
-		System.out.println("Group created successfully");
-	}
-
-	private static void addToGroup(Scanner inputScanner, MongoDatabase database) {
-		MongoCollection<Document> collection = database.getCollection("Groups");
-		System.out.println("Please enter the name of the group to add a member to: ");
-		String groupName = inputScanner.nextLine();
-	    BasicDBObject whereQuery = new BasicDBObject();
-	    whereQuery.put("groupname", groupName);
-	    System.out.println(collection.find(whereQuery).first());
-	}
-
-	/*
-	 * Create a client to MongoDB.
-	 */
-	private static MongoClient createClient(String name, String password) {
-		return MongoClients.create("mongodb+srv://" + name + ":" + password
-				+ "@secure-social-0n8uh.azure.mongodb.net/test?retryWrites=true&w=majority");
-	}
 
 	/*
 	 * Return the passwords to the data base in a String array. index 0 contains the
