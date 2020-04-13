@@ -19,15 +19,18 @@ import com.mongodb.MongoClientSettings;
 public class DBClient {
 	private MongoClient mongoClient;
 	private MongoDatabase database;
-	MongoCollection<Document> users;
-	MongoCollection<Document> groups;
-	MongoCollection<Document> posts;
+	private MongoCollection<Document> users;
+	private MongoCollection<Document> groups;
+	private MongoCollection<Document> posts;
 
 	
 	DBClient(String name, String password){
 		this.mongoClient = MongoClients.create("mongodb+srv://" + name + ":" + password
 				+ "@secure-social-0n8uh.azure.mongodb.net/test?retryWrites=true&w=majority");
 		this.database = mongoClient.getDatabase("Secure-Social");
+		this.users = database.getCollection("users");
+		this.groups = database.getCollection("groups");
+		this.posts = database.getCollection("posts");
 	}
 	
 	public void createUser(Scanner inputScanner) {
@@ -59,7 +62,20 @@ public class DBClient {
 	    } else {
 	    	System.out.println("Please enter the username of the user that you want to add to the group");
 			String userName = inputScanner.nextLine();
+			
 	    }
-	   
 	}
+	
+	public MongoCollection<Document> getUsers(){
+		return this.users;
+	}
+	
+	public MongoCollection<Document> getGroups(){
+		return this.users;
+	}
+	
+	public MongoCollection<Document> getPosts(){
+		return this.posts;
+	}
+
 }
