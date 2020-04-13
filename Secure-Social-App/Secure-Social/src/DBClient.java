@@ -28,9 +28,9 @@ public class DBClient {
 		this.mongoClient = MongoClients.create("mongodb+srv://" + name + ":" + password
 				+ "@secure-social-0n8uh.azure.mongodb.net/test?retryWrites=true&w=majority");
 		this.database = mongoClient.getDatabase("Secure-Social");
-		this.users = database.getCollection("users");
-		this.groups = database.getCollection("groups");
-		this.posts = database.getCollection("posts");
+		this.users = database.getCollection("Users");
+		this.groups = database.getCollection("Groups");
+		this.posts = database.getCollection("Posts");
 	}
 	
 	public void createUser(Scanner inputScanner) {
@@ -54,15 +54,22 @@ public class DBClient {
 	public void addToGroup(Scanner inputScanner) {
 		System.out.println("Please enter the name of the group to add a member to: ");
 		String groupName = inputScanner.nextLine();
-	    BasicDBObject whereQuery = new BasicDBObject();
-	    whereQuery.put("groupname", groupName);
-	    Document group = groups.find(whereQuery).first();
+	    BasicDBObject groupQuery = new BasicDBObject();
+	    groupQuery.put("groupname", groupName);
+	    Document group = groups.find(groupQuery).first();
 	    if(group == null) {
 	    	System.out.println("This group does not exist");
 	    } else {
 	    	System.out.println("Please enter the username of the user that you want to add to the group");
 			String userName = inputScanner.nextLine();
-			
+		    BasicDBObject userQuery = new BasicDBObject();
+		    userQuery.put("username", userName);
+		    Document user = users.find(userQuery).first();
+		    if(user == null) {
+		    	System.out.println("This user does not exist.");
+		    } else {
+		    	
+		    }
 	    }
 	}
 	

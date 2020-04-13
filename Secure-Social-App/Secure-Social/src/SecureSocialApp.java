@@ -35,6 +35,7 @@ public class SecureSocialApp {
 		String readOnlyPassword = passwords[0];
 		String readWritePassword = passwords[1];
 		DBClient mongo = new DBClient("readwrite", readWritePassword);
+		mongo.addToGroup(inputScanner);
 	}
 
 
