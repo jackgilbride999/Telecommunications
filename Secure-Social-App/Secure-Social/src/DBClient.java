@@ -11,6 +11,9 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
+
 
 /*
  * 	Class used to interface with the Mongo database.
@@ -54,21 +57,19 @@ public class DBClient {
 	public void addToGroup(Scanner inputScanner) {
 		System.out.println("Please enter the name of the group to add a member to: ");
 		String groupName = inputScanner.nextLine();
-	    BasicDBObject groupQuery = new BasicDBObject();
-	    groupQuery.put("groupname", groupName);
-	    Document group = groups.find(groupQuery).first();
+	    Document group = groups.find(Filters.eq("groupname", groupName)).first();
+
 	    if(group == null) {
 	    	System.out.println("This group does not exist");
 	    } else {
 	    	System.out.println("Please enter the username of the user that you want to add to the group");
 			String userName = inputScanner.nextLine();
-		    BasicDBObject userQuery = new BasicDBObject();
-		    userQuery.put("username", userName);
-		    Document user = users.find(userQuery).first();
+		    Document user = users.find(Filters.eq("username", userName)).first();
 		    if(user == null) {
 		    	System.out.println("This user does not exist.");
 		    } else {
-		    	
+		    	groups.updateOne(Filters.eq("groupname", groupName), Updates.addToSet("users", userName));
+		    	System.out.println("User added successfully.");
 		    }
 	    }
 	}
