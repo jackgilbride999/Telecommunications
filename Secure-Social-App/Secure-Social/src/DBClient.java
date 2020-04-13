@@ -36,6 +36,15 @@ public class DBClient {
 		this.posts = database.getCollection("Posts");
 	}
 	
+	public boolean validateLogin(String userName, String password) {
+	    Document user = users.find(Filters.and(Filters.eq("username", userName), Filters.eq("password", password))).first();
+	    if(user == null) {
+	    	return false;
+	    } else {
+	    	return true;
+	    }
+	}
+	
 	public void createUser(Scanner inputScanner) {
 		System.out.println("Please enter the username of the user to create: ");
 		String userName = inputScanner.nextLine();
@@ -74,15 +83,15 @@ public class DBClient {
 	    }
 	}
 	
-	public MongoCollection<Document> getUsers(){
+	private MongoCollection<Document> getUsers(){
 		return this.users;
 	}
 	
-	public MongoCollection<Document> getGroups(){
+	private MongoCollection<Document> getGroups(){
 		return this.users;
 	}
 	
-	public MongoCollection<Document> getPosts(){
+	private MongoCollection<Document> getPosts(){
 		return this.posts;
 	}
 

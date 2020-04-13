@@ -29,15 +29,44 @@ public class SecureSocialApp {
 	public static void main(String[] args) {
 		Logger mongoLogger = Logger.getLogger("org.mongodb.driver");
 		mongoLogger.setLevel(Level.SEVERE); // e.g. or Log.WARNING, etc.
-		System.out.println("Welcome to Secure Social.");
 		Scanner inputScanner = new Scanner(System.in);
+		DBClient mongo = createDBClient();
+		System.out.println("Welcome to Secure Social.");
+		User currentUser = signIn(inputScanner, mongo);
+		return;
+	}
+
+	/*
+	 * Create an instance of the signed in user.
+	 */
+	private static User signIn(Scanner inputScanner, DBClient mongo) {
+		String userName, password;
+		boolean validated = false;
+		do {
+			System.out.println("Please enter your username.");
+			userName = inputScanner.nextLine();
+			System.out.println("Please enter your password.");
+			password = inputScanner.nextLine();
+			if(mongo.validateLogin(userName, password))
+			{
+				validated = true;
+			} else {
+				System.out.println("Invalid login. You will need to re-enter your credentials.");
+			}	
+		} while(!validated);
+		User user = new User(userName, password);
+		return user;
+	}
+	
+	/*
+	 * Create a client to interface with MongoDB using saved credentials.
+	 */
+	private static DBClient createDBClient() {
 		String[] passwords = getPasswords();
 		String readOnlyPassword = passwords[0];
 		String readWritePassword = passwords[1];
-		DBClient mongo = new DBClient("readwrite", readWritePassword);
-		mongo.addToGroup(inputScanner);
+		return new DBClient("readwrite", readWritePassword);
 	}
-
 
 	/*
 	 * Return the passwords to the data base in a String array. index 0 contains the
