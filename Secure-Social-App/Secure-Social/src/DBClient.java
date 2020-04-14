@@ -124,6 +124,18 @@ public class DBClient {
 			}
 		}
 	}
+	
+	/*
+	 * Check if the specified user is in the group in the db.
+	 */
+	public boolean isInGroup(String userName, String groupName) {
+		ArrayList<String> users = (ArrayList<String>) groups.find(Filters.eq("groupname", groupName)).first().get("users");
+		if(users.contains(userName)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	/*
 	 * Check if the specified group exists in the db.
