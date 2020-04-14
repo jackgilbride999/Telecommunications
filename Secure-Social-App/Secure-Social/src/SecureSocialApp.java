@@ -33,7 +33,11 @@ public class SecureSocialApp {
 		DBClient mongo = createDBClient();
 		System.out.println("Welcome to Secure Social.");
 		User currentUser = signIn(inputScanner, mongo);
-		System.out.println(mongo.isInGroup("jackgilbride999", "admin"));
+		Group group = new Group("testgroup");
+		String encryption = currentUser.encryptAES("hello world", group.key);
+		System.out.println(encryption);
+		String decryption = currentUser.decryptAES(encryption, group.key);
+		System.out.println(decryption);
 		return;
 	}
 
