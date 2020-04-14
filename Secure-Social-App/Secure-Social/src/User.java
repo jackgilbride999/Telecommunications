@@ -38,6 +38,21 @@ public class User {
 	}
 
 	/*
+	 * Decrypt a message with RSA using your private key.
+	 */
+	protected String decryptRSA(String message) {
+		try {
+			Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+			cipher.init(Cipher.DECRYPT_MODE, this.privateKey);
+			String decryption = new String(cipher.doFinal(message.getBytes()));
+			return decryption;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	/*
 	 * Encrypt a message with AES using a secret key. Returns a string which is the
 	 * initialization vector appended to the encoded text.
 	 */

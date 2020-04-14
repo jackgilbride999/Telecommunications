@@ -1,4 +1,8 @@
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -23,17 +27,20 @@ public class Group {
 		}
 	}
 
-	protected String encryptRSA(String message, String publicKEY) {
+	/*
+	 * Take a message and a public key in textual form and encode 
+	 * the message with the key using RSA.
+	 */
+	protected String encryptRSA(String message, String publicKey) {
 		try {
+			X509EncodedKeySpec keySpec = new X509EncodedKeySpec(Base64.getDecoder().decode(publicKey.getBytes()));
+			PublicKey keyObject = KeyFactory.getInstance("RSA").generatePublic(keySpec);
 			Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			cipher.init(Cipher.ENCRYPT_MODE, keyObject);
+			String encrypted = new String(cipher.doFinal(message.getBytes()));
+			return encrypted;
+		} catch (Exception e) {
+			return null;
 		}
-		
-		return null;
 	}
 }
