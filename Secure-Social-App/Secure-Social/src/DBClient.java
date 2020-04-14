@@ -46,6 +46,18 @@ public class DBClient {
 			return true;
 		}
 	}
+	
+	/*
+	 * Create a new entry in the posts document.
+	 */
+	public void createPost(Scanner inputScanner, String userName) {
+		System.out.println("Please enter the text entry you would like to post: ");
+		String post = inputScanner.nextLine();
+		Date date = new Date();
+		Document document = new Document("username", userName).append("date", date).append("content", post);
+		posts.insertOne(document);
+		System.out.println("Post created successfully.");
+	}
 
 	/*
 	 * Create a new entry in the users document.
@@ -88,6 +100,27 @@ public class DBClient {
 			} else {
 				groups.updateOne(Filters.eq("groupname", groupName), Updates.addToSet("users", userName));
 				System.out.println("User added successfully.");
+			}
+		}
+	}
+	
+	/*
+	 * Remove a user from the groups document, provided the user and group exist.
+	 */
+	public void removeFromGroup(Scanner inputScanner) {
+		System.out.println("Please enter the name of the group to remove a member from: ");
+		String groupName = inputScanner.nextLine();
+
+		if (!isGroup(groupName)) {
+			System.out.println("This group does not exist");
+		} else {
+			System.out.println("Please enter the username of the user that you want to remove to the group");
+			String userName = inputScanner.nextLine();
+			if (!isUser(userName)) {
+				System.out.println("This user does not exist.");
+			} else {
+				groups.updateOne(Filters.eq("groupname", groupName), Updates.pull("users", userName));
+				System.out.println("User removed successfully.");			
 			}
 		}
 	}
