@@ -1,3 +1,6 @@
+import java.security.Key;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.HashMap;
@@ -13,16 +16,25 @@ public class User {
 
 	protected String username;
 	protected String password;
-	protected String privateKey;
-	protected String publicKey;
+	protected Key privateKey;
+	protected Key publicKey;
 	protected Map groupKeys;
 	protected boolean admin;
 
 	public User(String username, String password) {
-		this.username = username;
-		this.password = password;
-		this.admin = false;
-		this.groupKeys = new HashMap<String, String>();
+		try {
+			this.username = username;
+			this.password = password;
+			this.admin = false;
+			KeyPairGenerator keyPairGenerator;
+			keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+			keyPairGenerator.initialize(2048);
+			KeyPair kp = keyPairGenerator.genKeyPair();
+			this.publicKey = kp.getPublic();
+			this.privateKey = kp.getPrivate();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	/*
@@ -59,18 +71,17 @@ public class User {
 			// Convert the message to bytes for us to work with
 			byte[] payload = message.getBytes();
 			// Take off the initialization vector which was used to encrypt
-	        byte[] iv = new byte[16];
+			byte[] iv = new byte[16];
 			byte[] cipherText = new byte[payload.length - iv.length];
-	        System.arraycopy(payload, 0, iv, 0, 16);
-	        System.arraycopy(payload, iv.length, cipherText, 0, cipherText.length);
+			System.arraycopy(payload, 0, iv, 0, 16);
+			System.arraycopy(payload, iv.length, cipherText, 0, cipherText.length);
 			// Decrypt the message now that we know the initialization vector
-	        SecretKeySpec keySpec = new SecretKeySpec(key.getEncoded(), "AES");
+			SecretKeySpec keySpec = new SecretKeySpec(key.getEncoded(), "AES");
 			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 			cipher.init(Cipher.DECRYPT_MODE, keySpec, new IvParameterSpec(iv));
 			// Convert to the string form that we want and return
 			String decryptedText = new String(cipher.doFinal(cipherText));
 			return decryptedText;
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
