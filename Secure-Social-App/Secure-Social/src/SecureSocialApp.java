@@ -1,17 +1,8 @@
-import java.lang.*;
 import java.io.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.bson.Document;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.ConnectionString;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.MongoClientSettings;
 
 /*
  * 	The aim of this project is to develop a secure social media application for Facebook,
@@ -34,7 +25,7 @@ public class SecureSocialApp {
 		System.out.println("Welcome to Secure Social.");
 		User currentUser = signIn(inputScanner, mongo);
 		Group group = new Group("testgroup");
-		String encryption = currentUser.encryptAES("hello world", group.key);
+		String encryption = currentUser.encryptAES("test", group.key);
 		System.out.println(encryption);
 		String decryption = currentUser.decryptAES(encryption, group.key);
 		System.out.println(decryption);

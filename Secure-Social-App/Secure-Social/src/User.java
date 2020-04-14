@@ -1,13 +1,8 @@
 import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
-
 import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -18,7 +13,6 @@ public class User {
 	protected String password;
 	protected Key privateKey;
 	protected Key publicKey;
-	protected Map groupKeys;
 	protected boolean admin;
 
 	public User(String username, String password) {
