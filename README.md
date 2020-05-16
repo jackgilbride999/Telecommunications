@@ -2,7 +2,7 @@
 A series of projects to research and develop concepts in Telecommunications.
 
 ## [Publish-Subscribe Protocol](Publish-Subscribe)
-A Java implementation of a Publish-Subscribe protocol, which uses datagrams to communicate between a Subscriber, a Broker and a Publisher. The report detailing the research and development outcomes is [here](Publish-Subscribe/Publish-Subscribe-Report.pdf).
+A Java implementation of a Publish-Subscribe protocol, which uses datagrams to communicate between a Subscriber, a Broker and a Publisher. The report detailing the research and development outcomes is found [here](Publish-Subscribe/Publish-Subscribe-Report.pdf).
 
 ## [OpenFlow Custom Implementation](Openflow-Custom-Implementation)
 A custom Java implementation of the OpenFlow Software Defined Networking protocol. The report detailing the research and development outcomes is found [here](Openflow-Custom-Implementation/OpenFlow-Report.pdf).
