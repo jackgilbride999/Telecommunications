@@ -1,2 +1,2 @@
 # Securing Social Media Applications
-A Java implementation of encryption concepts in Symmetric-Key Cryptography and Asymmetric-Key Cryptography, to serve as functionality for a secure social networking application. The full report, [here](Secure-Social-App/Secure-Social-App-Report.pdf), details the entire technical specification of the project.
+A Java implementation of encryption concepts in Symmetric-Key Cryptography and Asymmetric-Key Cryptography, to serve as functionality for a secure social networking application. The full report, [here](Secure-Social-App-Report.pdf), details the entire technical specification of the project.
