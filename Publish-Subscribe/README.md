@@ -2,8 +2,8 @@
 Java implementation of a Publish-Subscribe protocol, which uses datagrams to communicate between a Subscriber, a Broker and a Publisher. The full report, [here](Publish-Subscribe-Report.pdf), details the entire technical specification of the project.
 
 ## Usage
-1. Open a Java project containing all of the classes in the repository.
-2. Run the *Broker*, the *Publisher* and the *Subscriber* seperately.
+1. Individually compile the *Broker*, *Publisher* and *Subscriber*. If using the command line, use `javac Broker.java`, `javac Publisher.java` and `javac Subscriber.java`.
+2. Run the *Broker*, the *Publisher* and the *Subscriber* seperately on the same machine. If using the command line, use `java Broker`, `java Publisher` and `java Subscriber`.
 3. The *Broker*, *Publisher* and *Subscriber* will each open up their terminal windows. Each window displays output to the user. The windows for the *Publisher* and *Subscriber* also take input.
 4. Enter `CREATE` in the *Publisher* window to create a topic. Enter the name of the topic you wish to create. Do this one or more times. The names of these topics are now stored in the *Broker*.
 5. Enter `SUBSCRIBE` in the *Subscriber* window. Enter the name of one of the topics that you have created. This subscription is noted by the *Broker*.

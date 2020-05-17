@@ -6,10 +6,10 @@ A Java implementation of a web proxy server which accepts a connection from a we
 2. Compile the project in this directory. If using the command line, use `javac ProxyMultiThread.java`.
 3. Run the project. If using the command line, use `java ProxyMultiThread`.
 4. Within the command line:
-  - Enter HELP to see the list of possible commands.
-  - Enter BLOCKED to view the list of blocked URLs.
-  - Enter CACHED to view the list of cached webpages.
-  - Enter CLOSE to close the proxy server.
+  - Enter `HELP` to see the list of possible commands.
+  - Enter `BLOCKED` to view the list of blocked URLs.
+  - Enter `CACHED` to view the list of cached webpages.
+  - Enter `CLOSE` to close the proxy server.
   - Otherwise, enter a URL to add it to the blocked list.
 5. Within your web browser:
   - Enter a previously accessed HTTP URL. The program will fetch it from the cache and return it to your browser.
