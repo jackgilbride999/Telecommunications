@@ -1,5 +1,5 @@
 # Publish-Subscribe
-Java implementation of a Publish-Subscribe protocol, which uses datagrams to communicate between a Subscriber, a Broker and a Publisher. The full report, [here](PublishSubscribe-Report.pdf), details the entire technical specification of the project.
+Java implementation of a Publish-Subscribe protocol, which uses datagrams to communicate between a Subscriber, a Broker and a Publisher. The full report, [here](Publish-Subscribe-Report.pdf), details the entire technical specification of the project.
 
 ## Usage
 1. Open a Java project containing all of the classes in the repository.
