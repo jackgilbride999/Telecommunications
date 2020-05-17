@@ -1,7 +1,5 @@
 # Publish-Subscribe
-Java implementation of a Publish-Subscribe protocol, which uses datagrams to communicate between a Subscriber, a Broker and a Publisher. See the full report [here](17340868-Jack-Joseph-Gilbride-PublishSubscribe-Report.pdf), which details the entire technical specification of the project.
-
-The code from *Terminal.java* as well as the *Constructor* and *Listener* class in Node.java were provided to give assistance with I/O and threading. The remaining code was written by me to build the Publish-Subscribe protocol.
+Java implementation of a Publish-Subscribe protocol, which uses datagrams to communicate between a Subscriber, a Broker and a Publisher. The full report, [here](PublishSubscribe-Report.pdf), details the entire technical specification of the project.
 
 ## Usage
 1. Open a Java project containing all of the classes in the repository.
